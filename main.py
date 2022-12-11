@@ -34,15 +34,17 @@ data = [{
 try:
     kaggle.api.authenticate()
     for dataset in data:
-        if not os.path.exists(f"data/{dataset['name']}") or not os.path.exists(f"data/{dataset['name']}/{dataset['file']}"):
+        if not os.path.exists(f"data/{dataset['name']}") or \
+            not os.path.exists(f"data/{dataset['name']}/{dataset['file']}"):
             print(f"Downloading {dataset['name']} dataset", flush=True)
-            kaggle.api.dataset_download_files(dataset['address'], path=f"data/{dataset['name']}", unzip=True)
+            kaggle.api.dataset_download_files(dataset['address'], \
+                path=f"data/{dataset['name']}", unzip=True)
 except:
     print("Kaggle API not working, either download the data manually or use the Kaggle CLI")
     for dataset in data:
         print(f"Download {dataset['name']} dataset from https://www.kaggle.com/{dataset['address']} and place its content it in data/{dataset['name']} folder")
 
-curr_data = data[0]
+curr_data = data[1]
 print(f"Using {curr_data['name']} dataset")
 
 
@@ -76,25 +78,32 @@ def split_data(df, test_size, validation_size, seed):
     train_size = 1 - test_size - validation_size
 
     # Split the data into train test and validation sets
-    train_df, test_val_df = train_test_split(df, train_size=train_size, random_state=seed)
-    validation_df, test_df = train_test_split(test_val_df, train_size=validation_size/(test_size+validation_size), random_state=seed)
+    train_df, test_val_df = train_test_split(df, train_size=train_size, \
+        random_state=seed)
+    validation_df, test_df = train_test_split(test_val_df, \
+        train_size=validation_size/(test_size+validation_size), random_state=seed)
     
     return train_df, validation_df, test_df
 
 # Read data
-text_column = curr_data[3]
-ans_column = curr_data[4]
-df = pd.read_csv(f'data/{curr_data[0]}/{curr_data[2]}')
+text_column = curr_data['x_column']
+ans_column = curr_data['y_column']
+df = pd.read_csv(f'data/{curr_data["name"]}/{curr_data["file"]}', encoding='utf8')
 df = clean_up_dataset(df, text_column, ans_column, drop_zeros=True)
 
+# Shuffle the data
+df = df.sample(frac=1, random_state=seed)
 
-# Reduce dataset by 80% for faster training
-df = df.sample(frac=0.01, random_state=seed)
 
 train_df, validation_df, test_df = split_data(df, test_size=0.2, validation_size=0.2, seed=seed)
-print(f"Train set size: \t{len(train_df)} ({len(train_df)/len(df)*100:.2f}%", flush=True)
-print(f"Validation set size: \t{len(validation_df)} ({len(validation_df)/len(df)*100:.2f}%", flush=True)
-print(f"Test set size: \t\t{len(test_df)} ({len(test_df)/len(df)*100:.2f}%", flush=True)
+print(f"Train set size: \t{len(train_df)} ({len(train_df)/len(df)*100:.2f}%)", flush=True)
+print(f"Validation set size: \t{len(validation_df)} ({len(validation_df)/len(df)*100:.2f}%)", flush=True)
+print(f"Test set size: \t\t{len(test_df)} ({len(test_df)/len(df)*100:.2f}%)", flush=True)
+
+# Reset all indexes
+train_df = train_df.reset_index(drop=True)
+validation_df = validation_df.reset_index(drop=True)
+test_df = test_df.reset_index(drop=True)
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 print(device)
@@ -102,17 +111,30 @@ print(device)
 tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
 
 # Tokenize the data
-encoded_corpus_train = tokenizer(train_df[text_column].tolist(), padding=True, truncation=True, max_length=512, return_tensors='pt')
+max_len = 280 #512
+encoded_corpus_train = tokenizer(train_df[text_column].tolist(), padding=True, \
+    truncation=True, max_length=max_len, return_tensors='pt')
 input_ids_train = encoded_corpus_train['input_ids']
 attention_mask_train = encoded_corpus_train['attention_mask']
 
-encoded_corpus_validation = tokenizer(validation_df[text_column].tolist(), padding=True, truncation=True, max_length=512, return_tensors='pt')
+encoded_corpus_validation = tokenizer(validation_df[text_column].tolist(), \
+    padding=True, truncation=True, max_length=max_len, return_tensors='pt')
 input_ids_validation = encoded_corpus_validation['input_ids']
 attention_mask_validation = encoded_corpus_validation['attention_mask']
 
-encoded_corpus_test = tokenizer(test_df[text_column].tolist(), padding=True, truncation=True, max_length=512, return_tensors='pt')
+encoded_corpus_test = tokenizer(test_df[text_column].tolist(), padding=True, \
+    truncation=True, max_length=max_len, return_tensors='pt')
 input_ids_test = encoded_corpus_test['input_ids']
 attention_mask_test = encoded_corpus_test['attention_mask']
+
+
+# Decode each token (for debugging purposes)
+# for i in range(len(input_ids_train)):
+#     text = train_df.iloc[0][text_column]
+#     decoded = tokenizer.decode(input_ids_train[i])
+#     if '[UNK]' in decoded:
+#         print(text, flush=True)
+#         print(decoded, flush=True)
 
 # Scale the data
 y_scaler = StandardScaler()
@@ -122,9 +144,12 @@ validation_labels = y_scaler.transform(validation_df[ans_column].values.reshape(
 test_labels = y_scaler.transform(test_df[ans_column].values.reshape(-1, 1))
 
 # Create the dataset with float32
-train_dataset = TensorDataset(input_ids_train, attention_mask_train, torch.tensor(train_labels, dtype=torch.float32))
-validation_dataset = TensorDataset(input_ids_validation, attention_mask_validation, torch.tensor(validation_labels, dtype=torch.float32))
-test_dataset = TensorDataset(input_ids_test, attention_mask_test, torch.tensor(test_labels, dtype=torch.float32))
+train_dataset = TensorDataset(input_ids_train, attention_mask_train, \
+    torch.tensor(train_labels, dtype=torch.float32))
+validation_dataset = TensorDataset(input_ids_validation, attention_mask_validation, \
+    torch.tensor(validation_labels, dtype=torch.float32))
+test_dataset = TensorDataset(input_ids_test, attention_mask_test, \
+    torch.tensor(test_labels, dtype=torch.float32))
 
 # Create the data loaders
 batch_size = 3
@@ -142,7 +167,7 @@ model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, eps=1e-8)
 
 # Create the learning rate scheduler
-epochs = 4
+epochs = 25
 total_steps = len(train_dataloader) * epochs
 scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
 
@@ -162,7 +187,10 @@ def train(model, train_dataloader, validation_dataloader, optimizer, scheduler, 
         # Training
         model.train()
         train_loss = 0
-        for batch in train_dataloader:
+        for idx, batch in enumerate(train_dataloader):
+            if idx % 100 == 0 and not idx == 0:
+                print(f"Batch {idx}/{len(train_dataloader)}", flush=True)
+
             # Move batch to GPU
             batch = tuple(t.to(device) for t in batch)
             b_input_ids, b_input_mask, b_labels = batch
@@ -216,7 +244,13 @@ def train(model, train_dataloader, validation_dataloader, optimizer, scheduler, 
         
     return train_losses, validation_losses
 
-train_losses, validation_losses = train(model, train_dataloader, validation_dataloader, optimizer, scheduler, loss_fn, epochs, device)
+train_losses, validation_losses = train(model, \
+                                        train_dataloader, \
+                                        validation_dataloader, \
+                                        optimizer, scheduler, \
+                                        loss_fn, \
+                                        epochs, \
+                                        device)
 
 # Plot the loss
 plt.plot(train_losses, label='Training loss')
@@ -247,3 +281,32 @@ def evaluate(model, test_dataloader, loss_fn, device):
     print(f"Test loss: {avg_test_loss}", flush=True)
 
 evaluate(model, test_dataloader, loss_fn, device)
+
+# Predict the test set
+def predict(model, test_dataloader, device):
+    model.eval()
+    predictions = []
+    for batch in test_dataloader:
+        # Move batch to GPU
+        batch = tuple(t.to(device) for t in batch)
+        b_input_ids, b_input_mask, b_labels = batch
+
+        # Forward pass
+        with torch.no_grad():
+            outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask)
+            logits = outputs[0]
+
+        # Store predictions and true labels
+        predictions.append(logits.detach().cpu().numpy())
+    predictions = np.concatenate(predictions, axis=0)
+    return predictions
+    
+predictions = predict(model, test_dataloader, device)
+
+# Print the predictions and true values side by side
+total = 0
+print('Predictions\tTrue values')
+for i in range(len(predictions)):
+    print(f'{test_labels[i]}\t{predictions[i]}\t{abs(test_labels[i]-predictions[i])}')
+    total += abs(test_labels[i]-predictions[i])
+print(f'Average error: {total/len(predictions)}')
