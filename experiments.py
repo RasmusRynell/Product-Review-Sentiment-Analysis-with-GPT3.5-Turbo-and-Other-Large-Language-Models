@@ -16,89 +16,9 @@ import kaggle
 import os
 
 
-data = [{
-        'name': 'movie',
-        'address': 'akshaypawar7/millions-of-movies',
-        'file': 'movies.csv',
-        'x_column': 'overview',
-        'y_column': 'budget'
-        },
-        {
-        'name': 'musk',
-        'address': 'marta99/elon-musks-tweets-dataset-2022',
-        'file': 'cleandata.csv',
-        'x_column': 'Cleaned_Tweets',
-        'y_column': 'Likes'
-        }]
-
-try:
-    kaggle.api.authenticate()
-    for dataset in data:
-        if not os.path.exists(f"data/{dataset['name']}") or \
-            not os.path.exists(f"data/{dataset['name']}/{dataset['file']}"):
-            print(f"Downloading {dataset['name']} dataset", flush=True)
-            kaggle.api.dataset_download_files(dataset['address'], \
-                path=f"data/{dataset['name']}", unzip=True)
-except:
-    print("Kaggle API not working, either download the data manually or use the Kaggle CLI")
-    for dataset in data:
-        print(f"Download {dataset['name']} dataset from https://www.kaggle.com/{dataset['address']} and place its content it in data/{dataset['name']} folder")
-
-curr_data = data[1]
-print(f"Using {curr_data['name']} dataset")
-
-
-seed = 42
-torch.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
-np.random.seed(seed)
-random.seed(seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-
-
-
-def clean_up_dataset(df, df_col_x, df_col_y, drop_zeros=False):
-    # Drop rows with missing values in the df_col_x or df_col_y columns
-    df = df.dropna(subset=[df_col_x, df_col_y])
-    # Drop rows with zero values in the df_col_y column
-    if drop_zeros:
-        df = df[df[df_col_y] != 0]
-
-    # Convert the df_col_y column to float
-    df[df_col_y] = df[df_col_y].astype(float)
-
-    # Convert to lowercase
-    df[df_col_x] = df[df_col_x].str.lower()
-
-    return df[[df_col_x, df_col_y]]
-
-
-def split_data(df, test_size, validation_size, seed):
-    train_size = 1 - test_size - validation_size
-
-    # Split the data into train test and validation sets
-    train_df, test_val_df = train_test_split(df, train_size=train_size, \
-        random_state=seed)
-    validation_df, test_df = train_test_split(test_val_df, \
-        train_size=validation_size/(test_size+validation_size), random_state=seed)
-    
-    return train_df, validation_df, test_df
-
-# Read data
-text_column = curr_data['x_column']
-ans_column = curr_data['y_column']
-df = pd.read_csv(f'data/{curr_data["name"]}/{curr_data["file"]}', encoding='utf8')
-df = clean_up_dataset(df, text_column, ans_column, drop_zeros=True)
-
-# Shuffle the data
-df = df.sample(frac=1, random_state=seed)
-
-
-train_df, validation_df, test_df = split_data(df, test_size=0.2, validation_size=0.2, seed=seed)
-print(f"Train set size: \t{len(train_df)} ({len(train_df)/len(df)*100:.2f}%)", flush=True)
-print(f"Validation set size: \t{len(validation_df)} ({len(validation_df)/len(df)*100:.2f}%)", flush=True)
-print(f"Test set size: \t\t{len(test_df)} ({len(test_df)/len(df)*100:.2f}%)", flush=True)
+import common
+idx = 1
+df, train_df, validation_df, test_df = common.get_dataset(idx)
 
 # Reset all indexes
 train_df = train_df.reset_index(drop=True)
@@ -108,40 +28,35 @@ test_df = test_df.reset_index(drop=True)
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 print(device)
 
-tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased') # bert-large-uncased
 
 # Tokenize the data
-max_len = 280 #512
-encoded_corpus_train = tokenizer(train_df[text_column].tolist(), padding=True, \
+max_len = 512 #280 #512
+encoded_corpus_train = tokenizer(train_df['x'].tolist(), padding=True, \
     truncation=True, max_length=max_len, return_tensors='pt')
 input_ids_train = encoded_corpus_train['input_ids']
 attention_mask_train = encoded_corpus_train['attention_mask']
 
-encoded_corpus_validation = tokenizer(validation_df[text_column].tolist(), \
+encoded_corpus_validation = tokenizer(validation_df['x'].tolist(), \
     padding=True, truncation=True, max_length=max_len, return_tensors='pt')
 input_ids_validation = encoded_corpus_validation['input_ids']
 attention_mask_validation = encoded_corpus_validation['attention_mask']
 
-encoded_corpus_test = tokenizer(test_df[text_column].tolist(), padding=True, \
+encoded_corpus_test = tokenizer(test_df['x'].tolist(), padding=True, \
     truncation=True, max_length=max_len, return_tensors='pt')
 input_ids_test = encoded_corpus_test['input_ids']
 attention_mask_test = encoded_corpus_test['attention_mask']
 
 
-# Decode each token (for debugging purposes)
-# for i in range(len(input_ids_train)):
-#     text = train_df.iloc[0][text_column]
-#     decoded = tokenizer.decode(input_ids_train[i])
-#     if '[UNK]' in decoded:
-#         print(text, flush=True)
-#         print(decoded, flush=True)
-
 # Scale the data
-y_scaler = StandardScaler()
-y_scaler.fit(train_df[ans_column].values.reshape(-1, 1))
-train_labels = y_scaler.transform(train_df[ans_column].values.reshape(-1, 1))
-validation_labels = y_scaler.transform(validation_df[ans_column].values.reshape(-1, 1))
-test_labels = y_scaler.transform(test_df[ans_column].values.reshape(-1, 1))
+# y_scaler = StandardScaler()
+# y_scaler.fit(train_df['y'].values.reshape(-1, 1))
+# train_labels = y_scaler.transform(train_df['y'].values.reshape(-1, 1))
+# validation_labels = y_scaler.transform(validation_df['y'].values.reshape(-1, 1))
+# test_labels = y_scaler.transform(test_df['y'].values.reshape(-1, 1))
+train_labels = train_df['y'].values.reshape(-1, 1)
+validation_labels = validation_df['y'].values.reshape(-1, 1)
+test_labels = test_df['y'].values.reshape(-1, 1)
 
 # Create the dataset with float32
 train_dataset = TensorDataset(input_ids_train, attention_mask_train, \
@@ -152,7 +67,7 @@ test_dataset = TensorDataset(input_ids_test, attention_mask_test, \
     torch.tensor(test_labels, dtype=torch.float32))
 
 # Create the data loaders
-batch_size = 3
+batch_size = 64
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
 validation_dataloader = DataLoader(validation_dataset, batch_size=batch_size)
 test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
@@ -160,14 +75,14 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
 
 
 # Create the model
-model = AutoModelForSequenceClassification.from_pretrained('bert-large-uncased', num_labels=1)
+model = AutoModelForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=1) # bert-large-uncased
 model.to(device)
 
 # Create the optimizer
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, eps=1e-8)
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, eps=1e-8)
 
 # Create the learning rate scheduler
-epochs = 25
+epochs = 15
 total_steps = len(train_dataloader) * epochs
 scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
 
@@ -303,10 +218,10 @@ def predict(model, test_dataloader, device):
     
 predictions = predict(model, test_dataloader, device)
 
-# Print the predictions and true values side by side
-total = 0
-print('Predictions\tTrue values')
-for i in range(len(predictions)):
-    print(f'{test_labels[i]}\t{predictions[i]}\t{abs(test_labels[i]-predictions[i])}')
-    total += abs(test_labels[i]-predictions[i])
-print(f'Average error: {total/len(predictions)}')
+# # Print the predictions and true values side by side
+# total = 0
+# print('Predictions\tTrue values')
+# for i in range(len(predictions)):
+#     print(f'{test_labels[i]}\t{predictions[i]}\t{abs(test_labels[i]-predictions[i])}')
+#     total += abs(test_labels[i]-predictions[i])
+# print(f'Average error: {total/len(predictions)}')
