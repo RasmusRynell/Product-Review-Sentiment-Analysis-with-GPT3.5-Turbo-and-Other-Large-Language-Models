@@ -90,6 +90,17 @@ def clean_up_dataset(df, x_column, y_column, should_be_lower=False):
     if should_be_lower:
         df[x_column] = df[x_column].str.lower()
 
+    # For each row check if x column is larger than 512, if it is then truncate it
+    df[x_column] = df[x_column].apply(lambda x: x[:512] if len(x) > 512 else x)
+
+    df.loc[:, x_column] = df[x_column].apply(lambda x: x[:512] if len(x) > 512 else x)
+
+
+    # Rename positive to 2 neutral to 1 and negative to 0
+    df[y_column] = df[y_column].replace('positive', 2)
+    df[y_column] = df[y_column].replace('neutral', 1)
+    df[y_column] = df[y_column].replace('negative', 0)
+    
     return df
 
 
@@ -109,8 +120,9 @@ def get_dataset(idx, should_be_lower=False):
         df.columns = curr_data['columns']
 
     df = clean_up_dataset(df, curr_data['x_column'], curr_data['y_column'], should_be_lower=should_be_lower)
-    
+
     df = df.rename(columns={curr_data['x_column']: 'x', curr_data['y_column']: 'y'})
+    
 
     df = df.sample(frac=1, random_state=seed)
 

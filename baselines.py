@@ -31,8 +31,8 @@ def run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, n
     # Evaluate the pipeline
     va_score = pipeline.score(validation_df['x'], validation_df['y'])
     test_score = pipeline.score(test_df['x'], test_df['y'])
-    print(f'{name} validation score: {va_score}', flush=True)
-    print(f'{name} test score: {test_score}', flush=True)
+    print(f'{name} validation acc: {va_score}', flush=True)
+    print(f'{name} test acc: {test_score}', flush=True)
 
     # More metrics
     y_true = test_df['y']
@@ -49,7 +49,7 @@ def run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, n
 
 
 idx = 0
-for idx in range(0, 5):
+for idx in range(4, 5):
     dataset_name, others = common.get_dataset(idx)
     df, train_df, validation_df, test_df = others
 
