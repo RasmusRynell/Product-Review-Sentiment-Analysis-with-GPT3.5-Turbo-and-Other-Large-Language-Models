@@ -134,3 +134,4 @@ dmypy.json
 *kaggle.json
 *.csv
 *.txt
+*.sqlite

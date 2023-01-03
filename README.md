@@ -1,5 +1,5 @@
-# LLM-classification-comparison
-This repository contains test for how good different LLM are at different classification problems.
+# LLM-sentiment-comparison
+This repository contains test for how good different LLM are at different sentiment analysis problems.
 
 ## Results
 
