@@ -15,213 +15,82 @@ import matplotlib.pyplot as plt
 import kaggle
 import os
 
-
-import common
-idx = 1
-df, train_df, validation_df, test_df = common.get_dataset(idx)
-
-# Reset all indexes
-train_df = train_df.reset_index(drop=True)
-validation_df = validation_df.reset_index(drop=True)
-test_df = test_df.reset_index(drop=True)
-
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 print(device)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased') # bert-large-uncased
 
-# Tokenize the data
-max_len = 512 #280 #512
-encoded_corpus_train = tokenizer(train_df['x'].tolist(), padding=True, \
-    truncation=True, max_length=max_len, return_tensors='pt')
-input_ids_train = encoded_corpus_train['input_ids']
-attention_mask_train = encoded_corpus_train['attention_mask']
+# This file contains tests for LLM models for different sentiment analysis datasets
+# These models are english only, and a verity of small, medium and large models are tested
+# They include:
+# - bert-base-uncased, 110M parameters, english only, https://huggingface.co/bert-base-uncased
+# - bert-large-uncased, 340M parameters, english only, https://huggingface.co/bert-large-uncased
 
-encoded_corpus_validation = tokenizer(validation_df['x'].tolist(), \
-    padding=True, truncation=True, max_length=max_len, return_tensors='pt')
-input_ids_validation = encoded_corpus_validation['input_ids']
-attention_mask_validation = encoded_corpus_validation['attention_mask']
+# - RoBERTa-base, 125M parameters, english only, https://huggingface.co/roberta-base
+# - RoBERTa-large, 355M parameters, english only, https://huggingface.co/roberta-large
 
-encoded_corpus_test = tokenizer(test_df['x'].tolist(), padding=True, \
-    truncation=True, max_length=max_len, return_tensors='pt')
-input_ids_test = encoded_corpus_test['input_ids']
-attention_mask_test = encoded_corpus_test['attention_mask']
+# - DistilBert-base-uncased, 66M parameters, english only, https://huggingface.co/distilbert-base-uncased
+
+# - albert-base-v1, 12M parameters, english only, https://huggingface.co/albert-base-v1
+# - albert-large-v1, 18M parameters, english only, https://huggingface.co/albert-large-v1
+# - albert-xlarge-v1, 60M parameters, english only, https://huggingface.co/albert-xlarge-v1
+# - albert-xxlarge-v1, 235M parameters, english only, https://huggingface.co/albert-xxlarge-v1
+
+# - albert-base-v2, 12M parameters, english only, https://huggingface.co/albert-base-v2
+# - albert-large-v2, 18M parameters, english only, https://huggingface.co/albert-large-v2
+# - albert-xlarge-v2, 60M parameters, english only, https://huggingface.co/albert-xlarge-v2
+# - albert-xxlarge-v2, 235M parameters, english only, https://huggingface.co/albert-xxlarge-v2
+
+# - xlnet-base-cased, 110M parameters, english only, https://huggingface.co/xlnet-base-cased
+# - xlnet-large-cased, 340M parameters, english only, https://huggingface.co/xlnet-large-cased
+
+# Fine-tuned models:
+# - finbert, 110M parameters, english only, https://huggingface.co/ProsusAI/finbert
+# - bertweet-base, 110M parameters, english only, https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment
+# - bertweet-large, 340M parameters, english only, https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment
+
+non_fine_tuned_models = [
+    "bert-base-uncased",
+    "bert-large-uncased",
+    "roberta-base",
+    "roberta-large",
+    "distilbert-base-uncased",
+    "albert-base-v1",
+    "albert-large-v1",
+    "albert-xlarge-v1",
+    "albert-xxlarge-v1",
+    "albert-base-v2",
+    "albert-large-v2",
+    "albert-xlarge-v2",
+    "albert-xxlarge-v2",
+    "xlnet-base-cased",
+    "xlnet-large-cased",
+]
 
 
-# Scale the data
-# y_scaler = StandardScaler()
-# y_scaler.fit(train_df['y'].values.reshape(-1, 1))
-# train_labels = y_scaler.transform(train_df['y'].values.reshape(-1, 1))
-# validation_labels = y_scaler.transform(validation_df['y'].values.reshape(-1, 1))
-# test_labels = y_scaler.transform(test_df['y'].values.reshape(-1, 1))
-train_labels = train_df['y'].values.reshape(-1, 1)
-validation_labels = validation_df['y'].values.reshape(-1, 1)
-test_labels = test_df['y'].values.reshape(-1, 1)
 
-# Create the dataset with float32
-train_dataset = TensorDataset(input_ids_train, attention_mask_train, \
-    torch.tensor(train_labels, dtype=torch.float32))
-validation_dataset = TensorDataset(input_ids_validation, attention_mask_validation, \
-    torch.tensor(validation_labels, dtype=torch.float32))
-test_dataset = TensorDataset(input_ids_test, attention_mask_test, \
-    torch.tensor(test_labels, dtype=torch.float32))
+import common
+idx = 0
 
-# Create the data loaders
-batch_size = 64
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
-validation_dataloader = DataLoader(validation_dataset, batch_size=batch_size)
-test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+# For each dataset
+for idx in range(0, 1): # 3
+    dataset_name, others = common.get_dataset(idx)
+    df, train_df, validation_df, test_df = others
 
+    # Reset all indexes
+    train_df = train_df.reset_index(drop=True)
+    validation_df = validation_df.reset_index(drop=True)
+    test_df = test_df.reset_index(drop=True)
 
+    # Print how long the train, validation and test sets are
+    print(f'Train set length: {len(train_df)}', flush=True)
+    print(f'Validation set length: {len(validation_df)}', flush=True)
+    print(f'Test set length: {len(test_df)}', flush=True)
 
-# Create the model
-model = AutoModelForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=1) # bert-large-uncased
-model.to(device)
+    # Print how many unique values there are in y_true
+    print(f'Unique values in y_true: {len(train_df["y"].unique())}', flush=True)
+    # Print how many of each unique value there are in y_true
+    print(f'Unique values in y_true: {train_df["y"].value_counts().to_dict()}', flush=True)
 
-# Create the optimizer
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, eps=1e-8)
-
-# Create the learning rate scheduler
-epochs = 15
-total_steps = len(train_dataloader) * epochs
-scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
-
-# Create the loss function
-loss_fn = nn.MSELoss()
-
-# Train the model
-def train(model, train_dataloader, validation_dataloader, optimizer, scheduler, loss_fn, epochs, device):
-    # Store the loss and accuracy for plotting
-    train_losses = []
-    validation_losses = []
-
-    for epoch in range(epochs):
-        print(f"Epoch {epoch+1}/{epochs}", flush=True)
-        print("-"*10, flush=True)
-
-        # Training
-        model.train()
-        train_loss = 0
-        for idx, batch in enumerate(train_dataloader):
-            if idx % 100 == 0 and not idx == 0:
-                print(f"Batch {idx}/{len(train_dataloader)}", flush=True)
-
-            # Move batch to GPU
-            batch = tuple(t.to(device) for t in batch)
-            b_input_ids, b_input_mask, b_labels = batch
-
-            # Clear any previously calculated gradients
-            model.zero_grad()
-
-            # Forward pass
-            outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask, labels=b_labels)
-            loss = outputs[0]
-
-            # Backward pass
-            loss.backward()
-
-            # Update parameters and take a step using the computed gradient
-            optimizer.step()
-
-            # Update the learning rate
-            scheduler.step()
-
-            # Update training loss
-            train_loss += loss.item()
-
-        # Calculate the average loss over the training data
-        avg_train_loss = train_loss / len(train_dataloader)
-        train_losses.append(avg_train_loss)
-
-        print(f"Training loss: {avg_train_loss}", flush=True)
-
-        # Validation
-        model.eval()
-        validation_loss = 0
-        for batch in validation_dataloader:
-            # Move batch to GPU
-            batch = tuple(t.to(device) for t in batch)
-            b_input_ids, b_input_mask, b_labels = batch
-
-            # Forward pass
-            with torch.no_grad():
-                outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask, labels=b_labels)
-                loss = outputs[0]
-
-            # Update validation loss
-            validation_loss += loss.item()
-
-        # Calculate the average loss over the validation data
-        avg_validation_loss = validation_loss / len(validation_dataloader)
-        validation_losses.append(avg_validation_loss)
-
-        print(f"Validation loss: {avg_validation_loss}", flush=True)
-        
-    return train_losses, validation_losses
-
-train_losses, validation_losses = train(model, \
-                                        train_dataloader, \
-                                        validation_dataloader, \
-                                        optimizer, scheduler, \
-                                        loss_fn, \
-                                        epochs, \
-                                        device)
-
-# Plot the loss
-plt.plot(train_losses, label='Training loss')
-plt.plot(validation_losses, label='Validation loss')
-plt.legend()
-plt.show()
-
-# Evaluate the model
-def evaluate(model, test_dataloader, loss_fn, device):
-    model.eval()
-    test_loss = 0
-    for batch in test_dataloader:
-        # Move batch to GPU
-        batch = tuple(t.to(device) for t in batch)
-        b_input_ids, b_input_mask, b_labels = batch
-
-        # Forward pass
-        with torch.no_grad():
-            outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask, labels=b_labels)
-            loss = outputs[0]
-
-        # Update test loss
-        test_loss += loss.item()
-
-    # Calculate the average loss over the test data
-    avg_test_loss = test_loss / len(test_dataloader)
-
-    print(f"Test loss: {avg_test_loss}", flush=True)
-
-evaluate(model, test_dataloader, loss_fn, device)
-
-# Predict the test set
-def predict(model, test_dataloader, device):
-    model.eval()
-    predictions = []
-    for batch in test_dataloader:
-        # Move batch to GPU
-        batch = tuple(t.to(device) for t in batch)
-        b_input_ids, b_input_mask, b_labels = batch
-
-        # Forward pass
-        with torch.no_grad():
-            outputs = model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask)
-            logits = outputs[0]
-
-        # Store predictions and true labels
-        predictions.append(logits.detach().cpu().numpy())
-    predictions = np.concatenate(predictions, axis=0)
-    return predictions
-    
-predictions = predict(model, test_dataloader, device)
-
-# # Print the predictions and true values side by side
-# total = 0
-# print('Predictions\tTrue values')
-# for i in range(len(predictions)):
-#     print(f'{test_labels[i]}\t{predictions[i]}\t{abs(test_labels[i]-predictions[i])}')
-#     total += abs(test_labels[i]-predictions[i])
-# print(f'Average error: {total/len(predictions)}')
+    # Loop trough all different models, train and test them
+    for model_name in non_fine_tuned_models:
+        # Train the model

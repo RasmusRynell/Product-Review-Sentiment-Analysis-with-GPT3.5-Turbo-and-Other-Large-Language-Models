@@ -18,49 +18,59 @@ torch.backends.cudnn.benchmark = False
 
 
 data = [{
-        'name': 'IMDB',
-        'address': 'lakshmi25npathi/imdb-dataset-of-50k-movie-reviews',
-        'file': 'IMDB_Dataset.csv',
-        'x_column': 'review',
-        'y_column': 'sentiment',
-        'type': 'classification',
-        'link': 'https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews'
+            'name': 'IMDB',
+            'address': 'lakshmi25npathi/imdb-dataset-of-50k-movie-reviews',
+            'file': 'IMDB_Dataset.csv',
+            'x_column': 'review',
+            'y_column': 'sentiment',
+            'link': 'https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews'
         },
         {
-        'name': 'Fake_News',
-        'address': 'hassanamin/textdb3',
-        'file': 'fake_or_real_news.csv',
-        'x_column': 'text',
-        'y_column': 'label',
-        'type': 'classification',
-        'link': 'https://www.kaggle.com/hassanamin/textdb3'
+            'name': 'Twitter',
+            'address': 'kazanova/sentiment140',
+            'file': 'training.1600000.processed.noemoticon.csv',
+            'columns': ['target', 'id', 'date', 'flag', 'user', 'text'],
+            'x_column': 'text',
+            'y_column': 'target',
+            'link': 'https://www.kaggle.com/kazanova/sentiment140'
         },
         {
-        'name': 'Disneyland_Reviews',
-        'address': 'arushchillar/disneyland-reviews',
-        'file': 'disneyland_reviews.csv',
-        'x_column': 'review',
-        'y_column': 'sentiment',
-        'type': 'multi-classification',
-        'link': 'https://www.kaggle.com/arushchillar/disneyland-reviews'
+            'name': 'Amazon',
+            'address': 'snap/amazon-fine-food-reviews',
+            'file': 'Reviews.csv',
+            'x_column': 'Text',
+            'y_column': 'Score',
+            'link': 'https://www.kaggle.com/snap/amazon-fine-food-reviews'
+        },
+        {
+            'name': 'Womens E-Commerce Clothing Reviews',
+            'address': 'nicapotato/womens-ecommerce-clothing-reviews',
+            'file': 'Womens Clothing E-Commerce Reviews.csv',
+            'x_column': 'Review Text',
+            'y_column': 'Rating',
+            'link': 'https://www.kaggle.com/nicapotato/womens-ecommerce-clothing-reviews'
+        },
+        {
+            'name': 'Financial Sentiment Analysis',
+            'address': 'sbhatti/financial-sentiment-analysis',
+            'file': 'data.csv',
+            'x_column': 'Sentence',
+            'y_column': 'Sentiment',
+            'link': 'https://www.kaggle.com/sbhatti/financial-sentiment-analysis'
         }
         ]
 
+def download_data():
+    for curr_data in data:
+        if not os.path.exists(f'data/{curr_data["name"]}'):
+            os.makedirs(f'data/{curr_data["name"]}')
+            kaggle.api.authenticate()
+            kaggle.api.dataset_download_files(curr_data['address'], path=f'data/{curr_data["name"]}', unzip=True)
+            print(f"Downloaded {curr_data['name']} dataset", flush=True)
+        #else:
+        #    print(f"Dataset {curr_data['name']} already exists", flush=True)
 
-def clean_up_dataset(df, df_col_x, df_col_y, drop_zeros=False):
-    # Drop rows with missing values in the df_col_x or df_col_y columns
-    df = df.dropna(subset=[df_col_x, df_col_y])
-    # Drop rows with zero values in the df_col_y column
-    if drop_zeros:
-        df = df[df[df_col_y] != 0]
-
-    # Convert the df_col_y column to float
-    df[df_col_y] = df[df_col_y].astype(float)
-
-    # Convert to lowercase
-    df[df_col_x] = df[df_col_x].str.lower()
-
-    return df[[df_col_x, df_col_y]]
+download_data()
 
 def split_data(df, test_size, validation_size, seed):
     train_size = 1 - test_size - validation_size
@@ -73,20 +83,38 @@ def split_data(df, test_size, validation_size, seed):
     
     return df, train_df, validation_df, test_df
 
+def clean_up_dataset(df, x_column, y_column, should_be_lower=False):
+    # Drop rows with NaN values
+    df = df.dropna()
 
-def get_dataset(idx):
+    if should_be_lower:
+        df[x_column] = df[x_column].str.lower()
+
+    return df
+
+
+
+def get_dataset(idx, should_be_lower=False):
     curr_data = data[idx]
     print(f"Using {curr_data['name']} dataset", flush=True)
 
-    df = pd.read_csv(f'data/{curr_data["name"]}/{curr_data["file"]}', encoding='utf8')
-    #df = clean_up_dataset(df, curr_data['x_column'], curr_data['y_column'], drop_zeros=True)
+    try:
+        df = pd.read_csv(f'data/{curr_data["name"]}/{curr_data["file"]}', encoding='utf8')
+    except:
+        df = pd.read_csv(f'data/{curr_data["name"]}/{curr_data["file"]}', encoding='latin-1')
+
+    # Check if curr_data['x_column'] and curr_data['y_column'] is in the dataset
+    if curr_data['x_column'] not in df.columns or curr_data['y_column'] not in df.columns:
+        # Set columns
+        df.columns = curr_data['columns']
+
+    df = clean_up_dataset(df, curr_data['x_column'], curr_data['y_column'], should_be_lower=should_be_lower)
+    
     df = df.rename(columns={curr_data['x_column']: 'x', curr_data['y_column']: 'y'})
+
     df = df.sample(frac=1, random_state=seed)
 
     test_size = 0.1
     validation_size = 0.1
 
     return curr_data['name'], split_data(df, test_size, validation_size, seed)
-
-def save_results():
-    pass

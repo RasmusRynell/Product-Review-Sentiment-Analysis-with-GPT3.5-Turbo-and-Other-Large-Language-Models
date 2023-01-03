@@ -40,6 +40,7 @@ def run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, n
     cm = confusion_matrix(y_true, y_pred)
     print(f'{name} confusion matrix: \n{cm}', flush=True)
 
+
     print()
 
     # Save the results
@@ -48,7 +49,7 @@ def run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, n
 
 
 idx = 0
-for idx in range(0, 2):
+for idx in range(0, 5):
     dataset_name, others = common.get_dataset(idx)
     df, train_df, validation_df, test_df = others
 
@@ -69,15 +70,8 @@ for idx in range(0, 2):
 
 
 
+    # Baseline: MultinomialNB
     # Bag of words
-    # Baseline 1: Dummy classifier
-    pipeline = Pipeline([
-        ('vectorizer', CountVectorizer()),
-        ('classifier', DummyClassifier(strategy='most_frequent'))
-    ])
-    run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, f'{dataset_name}: BOW - Dummy classifier')
-
-    # Baseline 2: MultinomialNB
     pipeline = Pipeline([
         ('vectorizer', CountVectorizer()),
         ('classifier', MultinomialNB())
@@ -85,14 +79,6 @@ for idx in range(0, 2):
     run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, f'{dataset_name}: BOW - MultinomialNB')
 
     # TF-IDF
-    # Baseline 4: Dummy classifier
-    pipeline = Pipeline([
-        ('vectorizer', TfidfVectorizer()),
-        ('classifier', DummyClassifier(strategy='most_frequent'))
-    ])
-    run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, f'{dataset_name}: TF-IDF - Dummy classifier')
-
-    # Baseline 5: MultinomialNB
     pipeline = Pipeline([
         ('vectorizer', TfidfVectorizer()),
         ('classifier', MultinomialNB())
