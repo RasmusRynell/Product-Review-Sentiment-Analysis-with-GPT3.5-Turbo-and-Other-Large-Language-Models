@@ -11,13 +11,12 @@ from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix
 from sklearn.datasets import make_classification
 from sklearn.metrics import plot_confusion_matrix
+from sklearn.metrics import roc_auc_score
 import time
 
 threads = 8
 
 import common
-
-
 
 
 
@@ -40,7 +39,6 @@ def run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, n
     cm = confusion_matrix(y_true, y_pred)
     print(f'{name} confusion matrix: \n{cm}', flush=True)
 
-
     print()
 
     # Save the results
@@ -49,7 +47,7 @@ def run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, n
 
 
 idx = 0
-for idx in range(4, 5):
+for idx in range(0, 4):
     dataset_name, others = common.get_dataset(idx)
     df, train_df, validation_df, test_df = others
 
@@ -69,6 +67,17 @@ for idx in range(4, 5):
     print(f'Unique values in y_true: {train_df["y"].value_counts().to_dict()}', flush=True)
 
 
+    # Baseline: Random
+    pipeline = Pipeline([
+        ('classifier', DummyClassifier(strategy='uniform'))
+    ])
+    run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, f'{dataset_name}: Random')
+
+    # Baseline: Majority
+    pipeline = Pipeline([
+        ('classifier', DummyClassifier(strategy='most_frequent'))
+    ])
+    run_evaluate_and_save_pipeline(pipeline, train_df, validation_df, test_df, f'{dataset_name}: Majority')
 
     # Baseline: MultinomialNB
     # Bag of words
