@@ -21,8 +21,8 @@ import common
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 print(device)
 
-epochs = 1
-batch_size = 4
+epochs = 10
+batch_size = 8
 learning_rate = 2e-5
 epsilon = 1e-8
 
@@ -52,19 +52,19 @@ epsilon = 1e-8
 # - bertweet-large, 340M parameters, english only, https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment
 
 non_fine_tuned_models = [
-    "bert-base-uncased", # Small, 110M parameters
-    "bert-large-uncased", # Large, 340M parameters
-    "bert-base-cased", # Small, 110M parameters
-    "bert-large-cased", # Large, 340M parameters
-    "roberta-base", # Small, 125M parameters
-    "roberta-large", # Large, 355M parameters
-    "distilbert-base-uncased", # Small, 66M parameters
-    "distilbert-base-cased", # Small, 66M parameters
+    # "bert-base-uncased", # Small, 110M parameters
+    # "bert-large-uncased", # Large, 340M parameters
+    # "bert-base-cased", # Small, 110M parameters
+    # "bert-large-cased", # Large, 340M parameters
+    # "roberta-base", # Small, 125M parameters
+    # "roberta-large", # Large, 355M parameters
+    # "distilbert-base-uncased", # Small, 66M parameters
+    # "distilbert-base-cased", # Small, 66M parameters
     "albert-base-v2", # Small, 12M parameters
-    "albert-large-v2", # Medium, 18M parameters
+    # "albert-large-v2", # Medium, 18M parameters
     # "albert-xlarge-v2", # Large, 60M parameters, Works, Does not work (mem)
     # "albert-xxlarge-v2", # XLarge, 235M parameters, Does not work (mem)
-    "xlnet-base-cased", # Small, 110M parameters
+    # "xlnet-base-cased", # Small, 110M parameters
     # "xlnet-large-cased", # Large, 340M parameters, Does not work (mem)
 ]
 
@@ -99,7 +99,6 @@ def train(model, train_dataloader, validation_dataloader, optimizer, scheduler, 
             optimizer.zero_grad()
             print(f"Epoch {epoch + 1}/{epochs} Batch {i}/{len(train_dataloader)}", flush=True, end="\r")
             i += 1
-            break
 
         train_loss /= len(train_dataloader)
         train_losses.append(train_loss)
@@ -126,7 +125,6 @@ def train(model, train_dataloader, validation_dataloader, optimizer, scheduler, 
             label_ids = inputs["labels"].cpu().numpy()
             predictions.append(logits)
             true_vals.append(label_ids)
-            break
 
         val_loss /= len(validation_dataloader)
         validation_losses.append(val_loss)
