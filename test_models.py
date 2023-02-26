@@ -6,6 +6,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
 from transformers import pipeline as transformers_pipeline
 
+
 def test_naive_bayes(train, test, validation):
     curr_pipeline = Pipeline([
         ('vectorizer', CountVectorizer()),
@@ -17,16 +18,6 @@ def test_naive_bayes(train, test, validation):
     print("Naive Bayes Accuracy: ", accuracy_score(test['Sentiment'], predictions))
     print(classification_report(test['Sentiment'], predictions))
 
-def test_svm(train, test, validation):
-    curr_pipeline = Pipeline([
-        ('vectorizer', CountVectorizer()),
-        ('classifier', SVC())
-    ])
-
-    curr_pipeline.fit(train['Summary'], train['Sentiment'])
-    predictions = curr_pipeline.predict(test['Summary'])
-    print("SVM Accuracy: ", accuracy_score(test['Sentiment'], predictions))
-    print(classification_report(test['Sentiment'], predictions))
 
 def test_simple_sentiment(train, test, validation):
     models = [
@@ -49,6 +40,7 @@ def test_simple_sentiment(train, test, validation):
     for i in range(len(models)):
         print(models[i], "Accuracy: ", accuracy_score(test['Sentiment'], results[i]))
         print(classification_report(test['Sentiment'], results[i]))
+
 
 def test_my_model(train, test, validation):
     pass

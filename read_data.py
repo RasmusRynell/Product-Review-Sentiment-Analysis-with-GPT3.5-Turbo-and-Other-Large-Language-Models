@@ -1,7 +1,7 @@
 import pandas as pd
 
 def read_clean_data():
-    data = pd.read_csv('sentiment.csv', encoding='latin-1')
+    data = pd.read_csv('data/sentiment.csv', encoding='latin-1')
     
     # Line (17301 in csv / 17299 in df) is corrupted, just remove it
     data = data.drop([17299])

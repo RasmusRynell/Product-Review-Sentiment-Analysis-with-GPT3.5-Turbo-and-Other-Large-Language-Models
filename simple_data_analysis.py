@@ -39,13 +39,10 @@ def plot_word_count(data, save=False):
 
     counts = word_counts(data)
     keep = counts[:100]
-
     names = [x[0] for x in keep]
     values = [x[1] for x in keep]
-
     plt.xticks(rotation=90)
     plt.bar(names, values)
-
     plt.savefig('plots/word_count.png') if save else plt.show()
 
 def plot_text_length(data, save=False):
@@ -59,8 +56,8 @@ def plot_text_length(data, save=False):
     plt.ylabel('Count')
 
     data['Summary'].str.len().hist(bins=50)
-
     plt.savefig('plots/text_length.png') if save else plt.show()
+
 
 def plot_distribution_sentiment(data, save=False):
     plt.clf()
@@ -72,10 +69,9 @@ def plot_distribution_sentiment(data, save=False):
     plt.ylabel('Count')
 
     data['Sentiment'].value_counts().plot(kind='bar')
-
     plt.savefig('plots/sentiment_distribution.png') if save else plt.show()
 
-# Analyze distribution of data
+
 def analyze_data(data, save=False):
     # Plot distribution of data
     plot_distribution_sentiment(data, save)
