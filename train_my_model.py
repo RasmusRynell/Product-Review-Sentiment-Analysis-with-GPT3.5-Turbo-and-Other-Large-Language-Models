@@ -41,12 +41,12 @@ if __name__ == '__main__':
     # test_data = test_data.drop(validation_data.index)
 
     # Fine tune "distilbert-base-uncased"
-    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased", truncation=True, padding=True)
+    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=3)
 
-    train_encodings = tokenizer(train_data['Summary'].tolist())
-    test_encodings = tokenizer(test_data['Summary'].tolist())
-    validation_encodings = tokenizer(validation_data['Summary'].tolist())
+    train_encodings = tokenizer(train_data['Summary'].tolist(), truncation=True, padding=True)
+    test_encodings = tokenizer(test_data['Summary'].tolist(), truncation=True, padding=True)
+    validation_encodings = tokenizer(validation_data['Summary'].tolist(), truncation=True, padding=True)
 
     class SentimentDataset(torch.utils.data.Dataset):
         def __init__(self, encodings, labels):
@@ -67,12 +67,12 @@ if __name__ == '__main__':
 
     training_args = TrainingArguments(
         output_dir='./models/checkpoints/',
-        learning_rate=2e-5,
-        num_train_epochs=3,
+        learning_rate=2e-4,
+        num_train_epochs=2,
         per_device_train_batch_size=128,
         per_device_eval_batch_size=128,
-        warmup_steps=500,                # number of warmup steps for learning rate scheduler
-        weight_decay=0.01,               # strength of weight decay
+        warmup_steps=250,                # number of warmup steps for learning rate scheduler
+        weight_decay=0.02,               # strength of weight decay
         save_strategy="epoch",
         logging_steps=10
     )
@@ -87,11 +87,37 @@ if __name__ == '__main__':
  
 
     trainer.train()
-    trainer.evaluate()
+    print(trainer.evaluate())
     trainer.save_model("models/my/distilbert-base-uncased_done")
 
-    # Print evaluation metrics
-    print(trainer.evaluate())
+    print(trainer.state.log_history)
+    # # Plot training loss
+    # plt.plot(trainer.state.log_history["loss"])
+    # plt.title("Training loss")
+    # plt.xlabel("Epoch")
+    # plt.ylabel("Loss")
+    # plt.savefig(f"plots/my_distilbert-base-uncased_done_loss.png")
+
+    # # Plot training accuracy
+    # plt.plot(trainer.state.log_history["eval_accuracy"])
+    # plt.title("Training accuracy")
+    # plt.xlabel("Epoch")
+    # plt.ylabel("Accuracy")
+    # plt.savefig(f"plots/my_distilbert-base-uncased_done_accuracy.png")
+
+    # # Plot scheduler learning rate
+    # plt.plot(trainer.state.log_history["lr"])
+    # plt.title("Scheduler learning rate")
+    # plt.xlabel("Epoch")
+    # plt.ylabel("Learning rate")
+    # plt.savefig(f"plots/my_distilbert-base-uncased_done_lr.png")
+
+    # # Plot training time
+    # plt.plot(trainer.state.log_history["total_flos"])
+    # plt.title("Training time")
+    # plt.xlabel("Epoch")
+    # plt.ylabel("Training time")
+    # plt.savefig(f"plots/my_distilbert-base-uncased_done_time.png")
 
 
 

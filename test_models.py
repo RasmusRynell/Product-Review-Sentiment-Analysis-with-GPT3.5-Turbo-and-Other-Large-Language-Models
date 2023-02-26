@@ -15,6 +15,7 @@ neutral = ["neu", "Neu", "neutral", "Neutral", "NEUTRAL", "LABEL_1"]
 
 def save_results(test, predictions, model_name):
     report = classification_report(test['Sentiment'], predictions, output_dict=True)
+
     print(f"Model: {model_name}")
     print(classification_report(test['Sentiment'], predictions))
 
@@ -58,7 +59,7 @@ def test_my_model(test, path):
     # Load model
     model = AutoModelForSequenceClassification.from_pretrained(path, num_labels=3)
     model.to(device)
-    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased", truncation=True, padding=True)
+    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
     # Prepare data
     test = test.reset_index(drop=True)
