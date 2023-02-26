@@ -1,13 +1,26 @@
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
 from transformers import pipeline as transformers_pipeline
+import json
+
+positive = ["pos", "Pos", "positive", "Positive", "POSITIVE", "LABEL_2"]
+negative = ["neg", "Neg", "negative", "Negative", "NEGATIVE", "LABEL_0"]
+neutral = ["neu", "Neu", "neutral", "Neutral", "NEUTRAL", "LABEL_1"]
 
 
-def test_naive_bayes(train, test, validation):
+def save_results(test, predictions, model_name):
+    report = classification_report(test['Sentiment'], predictions, output_dict=True)
+    print(f"Model: {model_name}")
+    print(classification_report(test['Sentiment'], predictions))
+
+    with open(f"results/{model_name}.csv", 'w') as f:
+        f.write(json.dumps(report, indent=4))
+
+
+def test_naive_bayes(train, test):
     curr_pipeline = Pipeline([
         ('vectorizer', CountVectorizer()),
         ('classifier', MultinomialNB())
@@ -15,32 +28,25 @@ def test_naive_bayes(train, test, validation):
 
     curr_pipeline.fit(train['Summary'], train['Sentiment'])
     predictions = curr_pipeline.predict(test['Summary'])
-    print("Naive Bayes Accuracy: ", accuracy_score(test['Sentiment'], predictions))
-    print(classification_report(test['Sentiment'], predictions))
+    save_results(test, predictions, "naive_bayes")
 
 
-def test_simple_sentiment(train, test, validation):
-    models = [
-        "finiteautomata/bertweet-base-sentiment-analysis",
-        "distilbert-base-uncased",
-        "distilbert-base-uncased-finetuned-sst-2-english"
-    ]
+def test_simple_sentiment(test):
+    test = test[:100]
+    global positive, negative, neutral
 
-    positive = ["pos", "Pos", "positive", "Positive", "POSITIVE"]
-    negative = ["neg", "Neg", "negative", "Negative", "NEGATIVE"]
-    neutral = ["neu", "Neu", "neutral", "Neutral", "NEUTRAL"]
+    simple_model = "cardiffnlp/twitter-roberta-base-sentiment"
+    latest_model = "cardiffnlp/twitter-roberta-base-sentiment-latest"
 
-    results = []
-    for model in models:
+    def test_model(test, model):
         curr_pipeline = transformers_pipeline("sentiment-analysis", model=model, tokenizer=model)
         predictions = curr_pipeline(test['Summary'].tolist())
-        predictions = [2 if x['label'] in positive else 0 if x['label'] in negative else 1 for x in predictions]
-        results.append(predictions)
+        predictions = ["positive" if x['label'] in positive else "negative" if x['label'] in negative else "neutral" for x in predictions]
 
-    for i in range(len(models)):
-        print(models[i], "Accuracy: ", accuracy_score(test['Sentiment'], results[i]))
-        print(classification_report(test['Sentiment'], results[i]))
+        save_results(test, predictions, model.replace("/", "_") + f"_{len(test)}")
 
+    test_model(test, simple_model)
+    test_model(test, latest_model)
 
-def test_my_model(train, test, validation):
+def test_my_model(train, test):
     pass

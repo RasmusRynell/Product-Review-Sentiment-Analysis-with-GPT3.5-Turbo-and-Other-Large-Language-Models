@@ -90,7 +90,7 @@ if __name__ == '__main__':
     validation_dataset = SentimentDataset(validation_encodings, validation_data['Sentiment'].tolist())
 
     training_args = TrainingArguments(
-        output_dir='./results',          # output directory
+        output_dir='./models',          # output directory
         learning_rate=2e-5,
         num_train_epochs=3,              # total # of training epochs
         per_device_train_batch_size=128,  # batch size per device during training
