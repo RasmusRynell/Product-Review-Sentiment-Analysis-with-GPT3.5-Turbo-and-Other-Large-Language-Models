@@ -4,4 +4,3 @@ This repository contains test for how good different LLM are at different sentim
 ## Results
 
 <> ## Paper
-2

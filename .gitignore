@@ -136,3 +136,6 @@ dmypy.json
 *.txt
 *.sqlite
 *.json
+
+my_distilbert-base-uncased/
+results/
