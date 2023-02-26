@@ -17,7 +17,7 @@ def read_clean_data():
     data['Sentiment'] = data['Sentiment'].replace(['Positive', 'Negative', 'Neutral'], ['positive', 'negative', 'neutral'])
 
     # Convert to ints
-    #data['Sentiment'] = data['Sentiment'].replace(['positive', 'neutral', 'negative'], [2, 1, 0])
+    data['Sentiment'] = data['Sentiment'].replace(['positive', 'neutral', 'negative'], [2, 1, 0])
 
     # Drop text longer than 128 and shorter than 10
     data = data[data['Summary'].str.len() < 128]

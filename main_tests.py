@@ -18,11 +18,12 @@ if __name__ == '__main__':
     test = cleaned_data.drop(train.index)
 
     # Naive Bayes
-    test_naive_bayes(train, test)
+    #test_naive_bayes(train, test)
 
     # bert
-    test_simple_sentiment(test)
-    test_simple_sentiment(cleaned_data)
+    #test_simple_sentiment(test)
+    #test_simple_sentiment(cleaned_data)
 
     # my model
-    test_my_model(train, test)
+    test_my_model(test, "models/my/distilbert-base-uncased_done")
+    
