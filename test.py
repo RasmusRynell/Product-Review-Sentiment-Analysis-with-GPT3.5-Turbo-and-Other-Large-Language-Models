@@ -13,6 +13,7 @@ from transformers import TrainingArguments, Trainer
 import datasets
 from datasets import load_metric
 
+from data import read_clean_data
 
 def read_clean_data():
     data = pd.read_csv('sentiment.csv', encoding='latin-1')
