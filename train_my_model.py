@@ -33,12 +33,6 @@ if __name__ == '__main__':
     train_data = cleaned_data.sample(frac=0.8, random_state=seed)
     test_data = cleaned_data.drop(train_data.index)
     validation_data = test_data
-    
-    # # Split data into train, test and validation
-    # train_data = cleaned_data.sample(frac=0.8, random_state=42)
-    # test_data = cleaned_data.drop(train_data.index)
-    # validation_data = test_data.sample(frac=0.5, random_state=42)
-    # test_data = test_data.drop(validation_data.index)
 
     # Fine tune "distilbert-base-uncased"
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
@@ -69,8 +63,8 @@ if __name__ == '__main__':
         output_dir='./models/checkpoints/',
         learning_rate=2e-4,
         num_train_epochs=2,
-        per_device_train_batch_size=128,
-        per_device_eval_batch_size=128,
+        per_device_train_batch_size=64,
+        per_device_eval_batch_size=64,
         warmup_steps=250,                # number of warmup steps for learning rate scheduler
         weight_decay=0.02,               # strength of weight decay
         save_strategy="epoch",

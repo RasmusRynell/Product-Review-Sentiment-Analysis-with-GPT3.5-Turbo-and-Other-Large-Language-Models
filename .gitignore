@@ -139,3 +139,4 @@ dmypy.json
 
 my_distilbert-base-uncased/
 models/
+data/

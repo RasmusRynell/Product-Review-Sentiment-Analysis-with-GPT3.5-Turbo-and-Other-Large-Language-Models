@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import spacy
 nlp = spacy.load('en_core_web_sm')
 
-from data import read_clean_data
+from read_data import read_clean_data
 
 def word_counts(data):
     word_counts = {}
@@ -58,6 +58,10 @@ def plot_text_length(data, save=False):
     data['Summary'].str.len().hist(bins=50)
     plt.savefig('plots/text_length.png') if save else plt.show()
 
+    # Print the length of the longest text
+    print(f"Longest text: {data['Summary'].str.len().max()}")
+    print(f"Shortest text: {data['Summary'].str.len().min()}")
+    print(f"Average text length: {data['Summary'].str.len().mean()}")
 
 def plot_distribution_sentiment(data, save=False):
     plt.clf()
