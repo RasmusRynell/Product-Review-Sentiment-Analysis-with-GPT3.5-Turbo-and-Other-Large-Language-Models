@@ -5,7 +5,7 @@ from collections import Counter
 nlp = spacy.load('en_core_web_sm')
 
 
-from data_processing import read_clean_data
+from data_processing import *
 
 def tokens(text):
     return [t.lower() for t in text.split() if t.isalpha()]
@@ -28,14 +28,14 @@ def word_counts(data):
 def plot_word_count(data, save=False, concat_string=''):
     #plt.clf()
     plt.figure(figsize=(20, 10))
-    plt.subplots_adjust(bottom=0.15)
+    plt.subplots_adjust(bottom=0.30)
     plt.grid(axis='y', alpha=0.75)
     plt.title('Word count')
     plt.xlabel('Word')
     plt.ylabel('Count')
 
     counts = word_counts(data)
-    keep = counts[:100]
+    keep = counts[:50]
     names = [x[0] for x in keep]
     values = [x[1] for x in keep]
     plt.xticks(rotation=90)
@@ -70,23 +70,34 @@ def plot_distribution_sentiment(data, save=False, concat_string=''):
     plt.ylabel('Count')
 
     data['Sentiment'].value_counts().plot(kind='bar')
+
+    # Change the x-axis labels to "Positive", "Neutral" and "Negative"
+    plt.xticks([0, 1, 2], ['Positive', 'Neutral', 'Negative'], rotation=0)
+
     plt.savefig(f'plots/sentiment_distribution{concat_string}.png') if save else plt.show()
 
 
 def analyze_data(data, save=False, concat_string=''):
     # Plot distribution of data
+    plt.rcParams.update({'font.size': 25})
     plot_distribution_sentiment(data, save, concat_string)
 
     # Plot distribution word count
+    plt.rcParams.update({'font.size': 25})
     plot_word_count(data, save, concat_string)
 
     # Plot distribution of text length
+    plt.rcParams.update({'font.size': 25})
     plot_text_length(data, save, concat_string)
 
 
 
 if __name__ == '__main__':
     cleaned_data = read_clean_data()
-    #analyze_data(cleaned_data, save=True, concat_string='')
+    analyze_data(cleaned_data, save=True, concat_string='all_data')
 
-    plot_word_count(cleaned_data, save=False)
+    # Plots changes for over sampling
+    train, test = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=False)
+    analyze_data(train, save=True, concat_string=f"_training_data_before_over_sample")
+    train = over_sample(train, 42)
+    analyze_data(train, save=True, concat_string=f"_training_data_after_over_sample")

@@ -51,3 +51,21 @@ def over_sample(data, random_state):
     resampled.columns = ['Summary', 'Sentiment']
 
     return resampled
+
+def split_data(data, random_state=42, validation=False, over_sample_train=False):
+    train_org = data.sample(frac=0.8, random_state=random_state)
+    test = data.drop(train_org.index)
+
+    if validation:
+        train_new = train_org.sample(frac=0.8, random_state=random_state)
+        validation = train_org.drop(train_new.index)
+
+        if over_sample_train:
+            train_new = over_sample(train_new, random_state)
+
+        return train_new, validation, test
+
+    if over_sample_train:
+        train_org = over_sample(train_org, random_state)
+
+    return train_org, test

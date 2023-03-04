@@ -68,18 +68,19 @@ def test_optimized_naive_bayes(train, test):
 def test_simple_sentiment(test):
     global positive, negative, neutral
 
-    simple_model = "cardiffnlp/twitter-roberta-base-sentiment"
-    latest_model = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+    models = ["distilbert-base-uncased",
+              "philschmid/distilbert-base-multilingual-cased-sentiment-2",
+              "cardiffnlp/twitter-roberta-base-sentiment-latest"]
 
-    def test_model(test, model):
-        curr_pipeline = transformers_pipeline("sentiment-analysis", model=model, tokenizer=model)
+    def test_default_model(test, model):
+        curr_pipeline = transformers_pipeline("sentiment-analysis", model=model, tokenizer=model, device=0)
         predictions = curr_pipeline(test['Summary'].tolist())
         predictions = [2 if x['label'] in positive else 0 if x['label'] in negative else 1 for x in predictions]
 
         save_results(test, predictions, model.replace("/", "_") + f"_{len(test)}")
 
-    test_model(test, simple_model)
-    test_model(test, latest_model)
+    for model in models:
+        test_default_model(test, model)
 
 
 def test_my_model(test, path):
@@ -103,7 +104,7 @@ def test_my_model(test, path):
         predictions = []
         for i in range(0, len(test), batch_size):
             batch = test[i:i+batch_size]
-            batch = tokenizer(batch['Summary'].tolist(), return_tensors="pt", max_length=128, truncation=True, padding=True)
+            batch = tokenizer(batch['Summary'].tolist(), return_tensors="pt", max_length=450, truncation=True, padding=True)
             batch = {k: v.to(device) for k, v in batch.items()}
             outputs = model(**batch)
             predictions.extend(torch.argmax(outputs.logits, dim=1).tolist())
