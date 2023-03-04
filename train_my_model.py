@@ -56,7 +56,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     cleaned_data = read_clean_data()
-    train_data, validation_data, _ = split_data(cleaned_data, random_state=seed, validation=True, over_sample_train=False)
+    train_data, validation_data, _ = split_data(cleaned_data, random_state=seed, validation=True, over_sample_train=True)
 
     model_name = "distilbert-base-uncased"
 
@@ -105,7 +105,7 @@ if __name__ == '__main__':
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         compute_metrics=compute_metrics,
-        callbacks = [EarlyStoppingCallback(early_stopping_patience=3)]
+        callbacks = [EarlyStoppingCallback(early_stopping_patience=5)]
     )
 
 

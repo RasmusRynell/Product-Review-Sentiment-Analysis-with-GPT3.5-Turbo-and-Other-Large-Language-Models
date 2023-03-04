@@ -16,8 +16,7 @@ def word_counts(data):
         counter.update(tokens(text))
 
     # Remove stop words
-    stop_words = nlp.Defaults.stop_words
-    for word in stop_words:
+    for word in nlp.Defaults.stop_words:
         counter.pop(word, None)
 
     # Convert to list of tuples
@@ -30,7 +29,7 @@ def plot_word_count(data, save=False, concat_string=''):
     plt.figure(figsize=(20, 10))
     plt.subplots_adjust(bottom=0.30)
     plt.grid(axis='y', alpha=0.75)
-    plt.title('Word count')
+    plt.title(f'Word count{concat_string.replace("_", " ")}')
     plt.xlabel('Word')
     plt.ylabel('Count')
 
@@ -48,7 +47,7 @@ def plot_text_length(data, save=False, concat_string=''):
     plt.subplots_adjust(bottom=0.15)
     plt.grid(axis='y', alpha=0.75)
     plt.grid(axis='x', alpha=0.0)
-    plt.title('Distribution of text length')
+    plt.title(f'Distribution of text length{concat_string.replace("_", " ")}')
     plt.xlabel('Text length')
     plt.ylabel('Count')
 
@@ -65,7 +64,7 @@ def plot_distribution_sentiment(data, save=False, concat_string=''):
     plt.figure(figsize=(20, 10))
     plt.subplots_adjust(bottom=0.15)
     plt.grid(axis='y', alpha=0.75)
-    plt.title('Distribution of sentiment')
+    plt.title(f'Distribution of sentiment{concat_string.replace("_", " ")}')
     plt.xlabel('Sentiment')
     plt.ylabel('Count')
 
@@ -94,7 +93,7 @@ def analyze_data(data, save=False, concat_string=''):
 
 if __name__ == '__main__':
     cleaned_data = read_clean_data()
-    analyze_data(cleaned_data, save=True, concat_string='all_data')
+    analyze_data(cleaned_data, save=True, concat_string='_all_data')
 
     # Plots changes for over sampling
     train, test = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=False)
