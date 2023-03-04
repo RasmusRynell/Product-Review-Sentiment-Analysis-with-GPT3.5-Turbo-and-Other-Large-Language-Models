@@ -13,7 +13,7 @@ from transformers import TrainingArguments, Trainer
 import datasets
 from datasets import load_metric
 
-from read_data import read_clean_data
+from data_processing import read_clean_data
 
 def compute_metrics(eval_pred):
    load_accuracy = load_metric("accuracy")

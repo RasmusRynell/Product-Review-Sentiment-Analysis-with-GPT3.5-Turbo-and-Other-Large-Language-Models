@@ -5,8 +5,9 @@ from transformers import pipeline
 import torch
 import time
 
-from read_data import read_clean_data
+from data_processing import *
 from test_models import *
+from data_analysis import *
 
 if __name__ == '__main__':
     cleaned_data = read_clean_data()
@@ -18,6 +19,13 @@ if __name__ == '__main__':
 
     train = cleaned_data.sample(frac=0.8, random_state=seed)
     test = cleaned_data.drop(train.index)
+
+    #analyze_data(train, save=True, concat_string=f"_before_{seed}")
+    
+    #train = over_sample(train, seed)
+
+    #analyze_data(train, save=True, concat_string=f"_after_{seed}")
+
 
 
     # Naive Bayes
