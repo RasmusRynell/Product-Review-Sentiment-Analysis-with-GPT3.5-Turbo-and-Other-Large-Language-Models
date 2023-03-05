@@ -142,3 +142,4 @@ models/
 data/
 api_key.txt
 org_id.txt
+cache/
