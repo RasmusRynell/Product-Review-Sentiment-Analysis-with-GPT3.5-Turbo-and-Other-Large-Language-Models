@@ -140,3 +140,5 @@ dmypy.json
 my_distilbert-base-uncased/
 models/
 data/
+api_key.txt
+org_id.txt

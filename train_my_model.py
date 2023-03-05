@@ -48,7 +48,7 @@ if __name__ == '__main__':
     transformers.enable_full_determinism(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    over_sample = False
+    over_sample = True
     over_sample_string = "over_sample" if over_sample else "no_over_sample"
 
     cleaned_data = read_clean_data()

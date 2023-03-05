@@ -191,18 +191,33 @@ def loss_plot(file, save=False, concat_string=''):
 
 if __name__ == '__main__':
     cleaned_data = read_clean_data()
-    analyze_data(cleaned_data, save=True, concat_string='_all_data')
+    # analyze_data(cleaned_data, save=True, concat_string='_all_data')
 
     # # Overall test
     # overall_tests(cleaned_data)
 
     # # Plots changes for over sampling
-    # train, test = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=False)
+    train, test = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=False)
     # analyze_data(train, save=True, concat_string=f"_training_data_before_over_sample")
     # over_samples_train = over_sample(train, 42)
     # analyze_data(over_samples_train, save=True, concat_string=f"_training_data_after_over_sample")
 
 
     # Plot loss over time
-    loss_plot('models/my/distilbert-base-uncased_log_history.json')
+    # loss_plot('models/my/distilbert-base-uncased_log_history.json')
+
+    # Print the total number of words in the test set
+    #print(f"Total number of words in test set: {len(test['Summary'].str.split().sum())}")
+
+    # Print the longest text in the summary
+    # Get index of longest text
+    longest_text_index = test['Summary'].str.split().apply(len).idxmax()
+
+    # Print the longest text
+    print(f"Longest text: {test['Summary'][longest_text_index]}")
+
+    # Print the length of the longest text
+    print(f"Length of longest text: {len(test['Summary'][longest_text_index].split())}")
+
+
     
