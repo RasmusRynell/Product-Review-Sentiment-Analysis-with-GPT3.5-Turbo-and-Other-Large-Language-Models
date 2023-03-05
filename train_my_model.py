@@ -41,13 +41,6 @@ def compute_metrics(eval_pred):
     f1 = f1.tolist()
     avr_f1 = float(np.mean(f1))
 
-    # Print
-    print(f"Accuracy: {accuracy}", flush=True)
-    print(f"Recall: {recall}", flush=True)
-    print(f"Precision: {precision}", flush=True)
-    print(f"F1: {f1}", flush=True)
-    print(f"Average F1: {avr_f1}", flush=True)
-
     return {"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1, "avr_f1": avr_f1}
 
 if __name__ == '__main__':
@@ -55,8 +48,11 @@ if __name__ == '__main__':
     transformers.enable_full_determinism(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    over_sample = False
+    over_sample_string = "over_sample" if over_sample else "no_over_sample"
+
     cleaned_data = read_clean_data()
-    train_data, validation_data, _ = split_data(cleaned_data, random_state=seed, validation=True, over_sample_train=True)
+    train_data, validation_data, _ = split_data(cleaned_data, random_state=seed, validation=True, over_sample_train=over_sample)
 
     model_name = "distilbert-base-uncased"
 
@@ -83,9 +79,9 @@ if __name__ == '__main__':
     validation_dataset = SentimentDataset(validation_encodings, validation_data['Sentiment'].tolist())
 
     training_args = TrainingArguments(
-        output_dir=f'./models/checkpoints/{model_name}/',
-        save_total_limit = 5,
-        eval_steps=500,
+        output_dir=f'./models/checkpoints/{model_name}_{over_sample_string}/',
+        save_total_limit = 10,
+        eval_steps=100,
         learning_rate=2e-4,
         num_train_epochs=4,
         per_device_train_batch_size=64,
@@ -105,15 +101,15 @@ if __name__ == '__main__':
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         compute_metrics=compute_metrics,
-        callbacks = [EarlyStoppingCallback(early_stopping_patience=5)]
+        callbacks = [EarlyStoppingCallback(early_stopping_patience=10)]
     )
 
 
     trainer.train()
     print(trainer.evaluate())
-    trainer.save_model(f"models/my/{model_name}_done")
+    trainer.save_model(f"models/my/{model_name}_{over_sample_string}_done")
 
     #print(trainer.state.log_history)
     # Save the log history
-    with open(f"models/my/{model_name}_log_history.json", "w") as f:
+    with open(f"models/my/{model_name}_log_history_{over_sample_string}.json", "w") as f:
         json.dump(trainer.state.log_history, f)

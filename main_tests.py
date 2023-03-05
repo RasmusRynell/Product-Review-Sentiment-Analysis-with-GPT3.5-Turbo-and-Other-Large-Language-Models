@@ -14,16 +14,8 @@ if __name__ == '__main__':
 
     train, test = split_data(data, random_state=42, validation=False, over_sample_train=False)
 
-    #analyze_data(train, save=True, concat_string=f"_before_{seed}")
-    
-    #train = over_sample(train, seed)
-
-    #analyze_data(train, save=True, concat_string=f"_after_{seed}")
-
-
-
     # # Naive Bayes
-    # #find_optimal_parameters(train, test) # Default parameters best...
+    find_optimal_parameters(train, test) # Default parameters best...
     # test_naive_bayes(train, test)
     # test_optimized_naive_bayes(train, test) # No need to optimize, default parameters are best
 
@@ -31,5 +23,5 @@ if __name__ == '__main__':
     #test_simple_sentiment(test)
 
     # # my model
-    test_my_model(test, "models/my/distilbert-base-uncased_done")
+    # test_my_model(test, "models/my/distilbert-base-uncased_done")
         
