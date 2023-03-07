@@ -6,7 +6,6 @@ from sklearn.metrics import classification_report
 from tqdm import tqdm
 
 from data_processing import *
-#from test_models import save_results
 
 ints_to_sentiments = {
     0: "negative",
@@ -35,29 +34,31 @@ def save_cache(model_name, new_cache):
     with open(full_path, 'w') as f:
         json.dump(new_cache, f, indent=4)
 
-def save_results(test, predictions, model_name):
+def save_results(test, predictions, model_name, shot_for_each_sentiment):
     report = classification_report(test['Sentiment'], predictions, output_dict=True)
 
     print(f"Model: {model_name}")
     print(classification_report(test['Sentiment'], predictions))
 
-    #with open(f"results/{model_name}.csv", 'w') as f:
-    #    f.write(json.dumps(report, indent=4))
+    with open(f"results/{model_name}_{shot_for_each_sentiment*3}_shot.csv", 'w') as f:
+        f.write(json.dumps(report, indent=4))
 
 def print_models():
     models = openai.Model.list()
     for model in models.data:
+        if "curie" in model.id:
+            print("\t", end="")
         print(model.id)
 
 def setup_openai():
-    # Read in api key from file
     api_key = open('api_key.txt', 'r').read()
     org_id = open('org_id.txt', 'r').read()
 
     openai.organization =  org_id
     openai.api_key = api_key
 
-def add_shots(data, row, shot_for_each_sentiment=0, seed=42):
+
+def add_random_shots(data, row, shot_for_each_sentiment=0, seed=42):
     # Take out "shot_for_each_sentiment" number of reviews for each sentiment
     template = f"Review: \"(summary)\" \nSentiment: (sentiment)"
     all_texts = []
@@ -74,12 +75,11 @@ def add_shots(data, row, shot_for_each_sentiment=0, seed=42):
             all_texts.append(template.replace("(summary)", sampled_row['Summary']).replace("(sentiment)", sentiment_text))
 
     random.shuffle(all_texts)
-    #print(all_texts)
 
     return all_texts
 
 def add_pre_determined_shots(data, row, seed=42):
-    positive = ["Works great, A little expensive but worth it."]
+    positive = ["Works great, a little expensive but worth it."]
     negative = ["Very low quality, I would not recommend this product."]
     neutral = ["It has a very high price but seems to be good quality."]
 
@@ -102,20 +102,17 @@ def add_pre_determined_shots(data, row, seed=42):
     return all_texts
 
 
-def test_open_ai_model(data, model_name, shot_for_each_sentiment=0, use_cache=True):
-    starting_text = f"The following text is a sentiment analysis of product reviews. The following answers are available: [{', '.join(ints_to_sentiments.values())}]\n"
-    
+def test_open_ai_model(data, model_name, settings, shot_for_each_sentiment=0, use_cache=True):
+    starting_text = f"This is a product review sentiment analysis. You can choose your response from the following options: [{', '.join(ints_to_sentiments.values())}]\n"
+
     cache = read_cache(model_name) if use_cache else {}
 
     predictions = []
     for index, row in tqdm(data.iterrows()):
-        #print("---"*20)
         this_rows_input = f"Review: \"{row['Summary']}\" \nSentiment: "
 
         prompt = starting_text
-        #shot_texts = add_shots(data, row, shot_for_each_sentiment)
-        shot_texts = add_pre_determined_shots(data, row) # doesn't use "shot_for_each_sentiment"
-        for shot in shot_texts:
+        for shot in add_pre_determined_shots(data, row):
             prompt += shot + "\n\n"
 
         prompt += this_rows_input
@@ -126,20 +123,22 @@ def test_open_ai_model(data, model_name, shot_for_each_sentiment=0, use_cache=Tr
         else:
             print("Cant find in cache, calling openai...", flush=True)
             try:
-                completion = openai.Completion.create(model=model_name, prompt=prompt)
+                completion = openai.Completion.create(model=model_name, prompt=prompt, **settings)
                 answer = completion.choices[0].text.strip().lower()
+                answer = "positive" if "positive" in answer else "negative" if "negative" in answer else "neutral"
                 cache[prompt] = answer
             except Exception as e:
                 save_cache(model_name, cache)
                 print(e)
-                exit()
+                return
 
         try:
             predictions.append(sentiments_to_ints[answer])
         except Exception as e:
+            print("Error with prompt: ", prompt)
             print("Error with answer: ", answer)
             print(e)
-            exit()
+            return
 
     print("Saving cache...")
     save_cache(model_name, cache)
@@ -147,16 +146,11 @@ def test_open_ai_model(data, model_name, shot_for_each_sentiment=0, use_cache=Tr
     print(f"Model: {model_name}")
     print(f"Predictions: {predictions}")
 
-    save_results(data, predictions, model_name)
+    save_results(data, predictions, model_name, shot_for_each_sentiment)
 
-def test_gpt3(data, model_name, shot_for_each_sentiment=0, use_cache=True):
-    system_text = "You are an expert in product reviews. \
-        You are given a product review and must predict the sentiment of the review. \
-        The following answers are available: [negative, neutral, positive]. \
-        You dont answer in any other way, whatever happens. \
-        Even if the input words are not in english or to short, \
-        you still answer in one of the following ways always in only one word: [negative, neutral, positive]. \
-        You never provide any other answer or additional information such as notes, comments, numbers or explanations."
+
+def test_gpt3(data, model_name, settings, shot_for_each_sentiment=0, use_cache=True):
+    system_text = "Predict the sentiment of a product review as either negative, neutral, or positive. You provide only ONE word as your answer, without any additional information, such as notes, comments, numbers, or explanations."
 
     cache = read_cache(model_name) if use_cache else {}
 
@@ -165,7 +159,6 @@ def test_gpt3(data, model_name, shot_for_each_sentiment=0, use_cache=True):
         this_rows_input = f"Review: \"{row['Summary']}\" \nSentiment: "
 
         messages = [{"role": "system", "content": system_text}]
-        #shot_texts = add_shots(data, row, shot_for_each_sentiment)
         shot_texts = add_pre_determined_shots(data, row) # doesn't use "shot_for_each_sentiment"
         for shot in shot_texts:
             user, assistant = shot.split("\n")
@@ -178,54 +171,49 @@ def test_gpt3(data, model_name, shot_for_each_sentiment=0, use_cache=True):
             print("Using cache...", flush=True)
             answer = cache[messages_in_text_form]
         else:
-            print("Cant find in cache, calling openai...", flush=True)
             try:
                 completion = openai.ChatCompletion.create(
                                 model=model_name,
-                                messages=messages)
+                                messages=messages,
+                                **settings)
 
                 answer = completion.choices[0].message.content.strip().lower()
                 answer = "positive" if "positive" in answer else "negative" if "negative" in answer else "neutral"
-                print(completion.choices[0].message.content.strip().lower(), answer, flush=True)
                 cache[messages_in_text_form] = answer
             except Exception as e:
                 save_cache(model_name, cache)
                 print(e)
-                exit()
+                return
 
         try:
             predictions.append(sentiments_to_ints[answer])
         except Exception as e:
             print("Error with answer: ", answer)
             print(e)
-            exit()
+            return
 
-    print("Saving cache...")
     save_cache(model_name, cache)
 
-    print(f"Model: {model_name}")
-    print(f"Predictions: {predictions}")
-
-    save_results(data, predictions, model_name)
+    save_results(data, predictions, model_name, shot_for_each_sentiment)
 
 if __name__ == "__main__":
+    settings = {
+        "temperature": 0.3,
+        #"top_p":0.33,
+    }
+
     setup_openai()
     #print_models()
 
     cleaned_data = read_clean_data()
     _, test_data = split_data(cleaned_data, random_state=seed, validation=False, over_sample_train=False)
 
-    model_name = "text-davinci-003"
-    # "ada" or "text-davinci-003"
-
     # Randomly select 300 rows
-    test_data = test_data.sample(n=300, random_state=seed)
+    test_data = test_data.sample(n=1000, random_state=seed)
 
-    #print(test_data.head())
-    #print(test_data['Sentiment'].value_counts())
+    #test_open_ai_model(test_data, "text-curie-001", settings, shot_for_each_sentiment=1, use_cache=False)
+    test_gpt3(test_data, "gpt-3.5-turbo", settings, shot_for_each_sentiment=1, use_cache=False)
 
-    # test_open_ai_model(test_data, model_name, shot_for_each_sentiment=1, use_cache=True)
-    test_gpt3(test_data, "gpt-3.5-turbo", shot_for_each_sentiment=1, use_cache=True)
 
 ''' 300, pre-determined (1)
 Model: text-davinci-003

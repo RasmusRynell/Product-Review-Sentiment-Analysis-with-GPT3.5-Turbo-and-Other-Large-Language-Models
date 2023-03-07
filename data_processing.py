@@ -57,7 +57,7 @@ def split_data(data, random_state=42, validation=False, over_sample_train=False)
     test = data.drop(train_org.index)
 
     if validation:
-        train_new = train_org.sample(frac=0.8, random_state=random_state)
+        train_new = train_org.sample(frac=0.9, random_state=random_state)
         validation = train_org.drop(train_new.index)
 
         if over_sample_train:

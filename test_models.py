@@ -24,18 +24,7 @@ def save_results(test, predictions, model_name):
         f.write(json.dumps(report, indent=4))
 
 
-def test_naive_bayes(train, test):
-    curr_pipeline = Pipeline([
-        ('vectorizer', CountVectorizer()),
-        ('classifier', MultinomialNB())
-    ])
-
-    curr_pipeline.fit(train['Summary'], train['Sentiment'])
-    predictions = curr_pipeline.predict(test['Summary'])
-    save_results(test, predictions, "naive_bayes")
-
-
-def find_optimal_parameters(train, test):
+def find_optimal_parameters(train):
     pipe = Pipeline([('vectorizer', CountVectorizer()), ('MNB', MultinomialNB())])
     GSCV = GridSearchCV(estimator=pipe,
              param_grid={
@@ -50,26 +39,31 @@ def find_optimal_parameters(train, test):
 
     GSCV.fit(train['Summary'], train['Sentiment'])
     print(GSCV.best_params_)
-    predictions = GSCV.predict(test['Summary'])
-    save_results(test, predictions, "optimized_naive_bayes")
+
+    optimal_binary = GSCV.best_params_['vectorizer__binary']
+    optimal_ngram_range = GSCV.best_params_['vectorizer__ngram_range']
+    optimal_alpha = GSCV.best_params_['MNB__alpha']
+
+    return optimal_binary, optimal_ngram_range, optimal_alpha
 
 
-def test_optimized_naive_bayes(train, test):
+def test_naive_bayes(train, test, is_over_sampled):
+    binary, ngram_range, alpha = find_optimal_parameters(train)
+
     curr_pipeline = Pipeline([
-        ('vectorizer', CountVectorizer(binary = True, ngram_range=(2,2))),
-        ('classifier', MultinomialNB(alpha=0.1))
+        ('vectorizer', CountVectorizer(binary = binary, ngram_range=ngram_range)),
+        ('classifier', MultinomialNB(alpha=alpha))
     ])
 
     curr_pipeline.fit(train['Summary'], train['Sentiment'])
     predictions = curr_pipeline.predict(test['Summary'])
-    save_results(test, predictions, "optimized_naive_bayes")
+    save_results(test, predictions, f"optimized_naive_bayes_{is_over_sampled}")
 
 
 def test_simple_sentiment(test):
     global positive, negative, neutral
 
-    models = ["distilbert-base-uncased",
-              "philschmid/distilbert-base-multilingual-cased-sentiment-2",
+    models = ["philschmid/distilbert-base-multilingual-cased-sentiment-2",
               "cardiffnlp/twitter-roberta-base-sentiment-latest"]
 
     def test_default_model(test, model):

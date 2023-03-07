@@ -3,6 +3,8 @@ import spacy
 from collections import Counter
 from tabulate import tabulate
 import json
+import pandas as pd
+import numpy as np
 
 
 nlp = spacy.load('en_core_web_sm')
@@ -54,7 +56,7 @@ def plot_text_length(data, save=False, concat_string=''):
     plt.xlabel('Text length')
     plt.ylabel('Count')
 
-    plt.ylim(0, 65000)
+    plt.ylim(0, 70000)
 
     data['Summary'].str.len().hist(bins=50)
     plt.savefig(f'plots/text_length{concat_string}.png') if save else plt.show()
@@ -72,7 +74,7 @@ def plot_distribution_sentiment(data, save=False, concat_string=''):
     plt.xlabel('Sentiment')
     plt.ylabel('Count')
 
-    plt.ylim(0, 12000)
+    plt.ylim(0, 90000)
 
     data['Sentiment'].value_counts().plot(kind='bar')
 
@@ -96,7 +98,7 @@ def analyze_data(data, save=False, concat_string=''):
     plot_text_length(data, save, concat_string)
 
 
-def overall_tests(data):
+def initial_analysis(data):
     sentiments_dict = {0: 'negative', 1: 'neutral', 2: 'positive'}
 
     # How many times does the word "good" appear for each sentiment? relative to how many times each sentiment appears
@@ -155,8 +157,19 @@ def overall_tests(data):
     # Print the value for "good" for each sentiment
     for key, sentiment in sentiments_dict.items():
         print(f"Value for 'good' for {sentiment}: {results[key]['good']}")
+
+def smooth(data, max_smooth=10):
+    smoothed = []
+    # Rolling average
+    for i in range(len(data)):
+        j = i - max_smooth
+        j = 0 if j < 0 else j
+        smoothed.append(sum(data[j:i + 1]) / (i - j + 1))
         
+    return smoothed
+
 def loss_plot(file, save=False, concat_string=''):
+    plt.rcParams.update({'font.size': 25})
     with open(file, 'r') as f:
         data = json.load(f)
 
@@ -175,10 +188,15 @@ def loss_plot(file, save=False, concat_string=''):
             print("Stats")
             print(json.dumps(time_step, indent=4))
 
+
+    # Smoothing
+    train_loss = smooth(train_loss, max_smooth=1)
+    val_loss = smooth(val_loss, max_smooth=1)
+
     plt.figure(figsize=(20, 10))
     plt.subplots_adjust(bottom=0.15)
     plt.grid(axis='y', alpha=0.75)
-    plt.title(f'Loss over time')
+    plt.title(f'Loss over time{concat_string.replace("_", " ")}')
     plt.xlabel('Step')
     plt.ylabel('Loss')
 
@@ -191,33 +209,20 @@ def loss_plot(file, save=False, concat_string=''):
 
 if __name__ == '__main__':
     cleaned_data = read_clean_data()
-    # analyze_data(cleaned_data, save=True, concat_string='_all_data')
+    # analyze_data(cleaned_data, save=True, concat_string=f"_all_data")
 
-    # # Overall test
-    # overall_tests(cleaned_data)
+    # initial_analysis(cleaned_data)
 
-    # # Plots changes for over sampling
+    # Plots changes for over sampling
     train, test = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=False)
-    # analyze_data(train, save=True, concat_string=f"_training_data_before_over_sample")
-    # over_samples_train = over_sample(train, 42)
-    # analyze_data(over_samples_train, save=True, concat_string=f"_training_data_after_over_sample")
+
+    # # Plot changes for over sampling
+    analyze_data(train, save=True, concat_string=f"_training_data_before_over_sample")
+    over_samples_train = over_sample(train, 42)
+    analyze_data(over_samples_train, save=True, concat_string=f"_training_data_after_over_sample")
 
 
     # Plot loss over time
-    # loss_plot('models/my/distilbert-base-uncased_log_history.json')
-
-    # Print the total number of words in the test set
-    #print(f"Total number of words in test set: {len(test['Summary'].str.split().sum())}")
-
-    # Print the longest text in the summary
-    # Get index of longest text
-    longest_text_index = test['Summary'].str.split().apply(len).idxmax()
-
-    # Print the longest text
-    print(f"Longest text: {test['Summary'][longest_text_index]}")
-
-    # Print the length of the longest text
-    print(f"Length of longest text: {len(test['Summary'][longest_text_index].split())}")
-
-
+    loss_plot('models/my/distilbert-base-uncased_log_history_no_over_sample.json', save=True, concat_string=f"_no_over_sample")
+    loss_plot('models/my/distilbert-base-uncased_log_history_over_sample.json', save=True, concat_string=f"_over_sample")
     
