@@ -8,15 +8,15 @@ from tqdm import tqdm
 from data_processing import *
 
 ints_to_sentiments = {
-    0: "negative",
+    2: "positive",
     1: "neutral",
-    2: "positive"
+    0: "negative"
 }
 
 sentiments_to_ints = {
-    "negative": 0,
+    "positive": 2,
     "neutral": 1,
-    "positive": 2
+    "negative": 0
 }
 
 seed = 42
@@ -48,7 +48,7 @@ def save_results(test, predictions, model_name, shots_for_each_sentiment, should
             name = f"results/{model_name}_{shots_for_each_sentiment*3}_shot.csv"
 
     # Add in "_new" before .csv
-    name = name[:-4] + "_new2" + name[-4:]
+    name = name[:-4] + "_new" + name[-4:]
 
     with open(name, 'w') as f:
         f.write(json.dumps(report, indent=4))
@@ -133,10 +133,10 @@ def test_open_ai_model(data, model_name, settings, shot_for_each_sentiment=0, us
         prompt += this_rows_input
 
         if prompt in cache:
-            print("Using cache...", flush=True)
+            #print("Using cache...", flush=True)
             answer = cache[prompt]
         else:
-            print("Cant find in cache, calling openai...", flush=True)
+            #print("Cant find in cache, calling openai...", flush=True)
             try:
                 completion = openai.Completion.create(model=model_name, prompt=prompt, **settings)
                 answer = completion.choices[0].text.strip().lower()
@@ -155,7 +155,7 @@ def test_open_ai_model(data, model_name, settings, shot_for_each_sentiment=0, us
             print(e)
             return
 
-    print("Saving cache...")
+    #print("Saving cache...")
     save_cache(model_name, cache)
 
     print(f"Model: {model_name}")
@@ -183,8 +183,8 @@ def test_gpt3(data, model_name, settings, shot_for_each_sentiment=0, use_cache=T
         
         messages.append({"role": "user", "content": this_rows_input})
         messages_in_text_form = str(messages).replace("'", '"')
+
         if messages_in_text_form in cache:
-            print("Using cache...", flush=True)
             answer = cache[messages_in_text_form]
         else:
             try:
@@ -224,79 +224,19 @@ if __name__ == "__main__":
     cleaned_data = read_clean_data()
     _, test_data = split_data(cleaned_data, random_state=seed, validation=False, over_sample_train=False)
 
+    # Print total num of rows
+    print(f"Total rows: {len(test_data)}")
+
     # Randomly select 300 rows
-    test_data = test_data.sample(n=300, random_state=seed)
+    #test_data = test_data.sample(n=1000, random_state=seed)
 
     # 0 and 3 shot classification
-    for num_sentiments in [0, 1]:
-        test_open_ai_model(test_data, "text-curie-001", settings, shot_for_each_sentiment=num_sentiments, use_cache=True, should_be_one=False)
-        test_gpt3(test_data, "gpt-3.5-turbo", settings, shot_for_each_sentiment=num_sentiments, use_cache=True, should_be_one=False)
+    #for num_sentiments in [0, 1]:
+        #test_open_ai_model(test_data, "text-curie-001", settings, shot_for_each_sentiment=num_sentiments, use_cache=True, should_be_one=False)
+        #test_gpt3(test_data, "gpt-3.5-turbo", settings, shot_for_each_sentiment=num_sentiments, use_cache=True, should_be_one=False)
 
     # 1 shot classification
-    test_open_ai_model(test_data, "text-curie-001", settings, shot_for_each_sentiment=1, use_cache=True, should_be_one=True)
-    test_gpt3(test_data, "gpt-3.5-turbo", settings, shot_for_each_sentiment=1, use_cache=True, should_be_one=True)
+    #test_open_ai_model(test_data, "text-curie-001", settings, shot_for_each_sentiment=1, use_cache=True, should_be_one=True)
+    #test_gpt3(test_data, "gpt-3.5-turbo", settings, shot_for_each_sentiment=1, use_cache=True, should_be_one=True)
 
-''' 300, pre-determined (1)
-Model: text-davinci-003
-              precision    recall  f1-score   support
-
-           0       0.71      0.88      0.79        40
-           1       0.22      0.50      0.30        14
-           2       1.00      0.89      0.94       246
-
-    accuracy                           0.87       300
-   macro avg       0.64      0.75      0.68       300
-weighted avg       0.92      0.87      0.89       300
-'''
-
-''' 300, pre-determined (2,1,4)
-Model: text-davinci-003
-              precision    recall  f1-score   support
-
-           0       0.69      0.90      0.78        40
-           1       0.24      0.43      0.31        14
-           2       1.00      0.90      0.95       246
-
-    accuracy                           0.88       300
-   macro avg       0.64      0.74      0.68       300
-weighted avg       0.92      0.88      0.89       300
-'''
-
-''' 300, 0
-Model: text-davinci-003
-              precision    recall  f1-score   support
-
-           0       0.68      0.90      0.77        40
-           1       0.12      0.36      0.18        14
-           2       1.00      0.84      0.91       246
-
-    accuracy                           0.82       300
-   macro avg       0.60      0.70      0.62       300
-weighted avg       0.92      0.82      0.86       300
-'''
-
-''' 300, 1
-Model: text-davinci-003
-              precision    recall  f1-score   support
-
-           0       0.71      0.85      0.77        40
-           1       0.21      0.43      0.28        14
-           2       1.00      0.90      0.95       246
-
-    accuracy                           0.87       300
-   macro avg       0.64      0.73      0.67       300
-weighted avg       0.92      0.87      0.89       300
-'''
-
-''' 300, 2
-Model: text-davinci-003
-              precision    recall  f1-score   support
-
-           0       0.71      0.88      0.79        40
-           1       0.27      0.57      0.36        14
-           2       1.00      0.89      0.94       246
-
-    accuracy                           0.88       300
-   macro avg       0.66      0.78      0.70       300
-weighted avg       0.92      0.88      0.89       300
-'''
+    test_gpt3(test_data, "gpt-3.5-turbo", settings, shot_for_each_sentiment=0, use_cache=True, should_be_one=False)

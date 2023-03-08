@@ -121,7 +121,7 @@ if __name__ == '__main__':
             callbacks = [EarlyStoppingCallback(early_stopping_patience=25)]
         )
 
-        trainer.evaluate()
+        print(trainer.evaluate())
         trainer.train()
         trainer.save_model(f"models/my/{model_name}_{over_sample_string}_done")
 

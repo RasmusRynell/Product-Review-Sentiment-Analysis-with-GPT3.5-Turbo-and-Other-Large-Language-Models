@@ -5,7 +5,9 @@ from tabulate import tabulate
 import json
 import pandas as pd
 import numpy as np
-
+import seaborn as sns
+sns.set_theme(style='darkgrid', rc={'figure.dpi': 147},              
+              font_scale=2)
 
 nlp = spacy.load('en_core_web_sm')
 
@@ -74,12 +76,14 @@ def plot_distribution_sentiment(data, save=False, concat_string=''):
     plt.xlabel('Sentiment')
     plt.ylabel('Count')
 
-    plt.ylim(0, 90000)
+    dist = [len(data[data['Sentiment'] == 2]), \
+            len(data[data['Sentiment'] == 1]), \
+            len(data[data['Sentiment'] == 0])]
 
-    data['Sentiment'].value_counts().plot(kind='bar')
+    max_value = max(dist)
+    plt.ylim(0, max_value + 10000)
 
-    # Change the x-axis labels to "Positive", "Neutral" and "Negative"
-    plt.xticks([0, 1, 2], ['Positive', 'Neutral', 'Negative'], rotation=0)
+    plt.bar(['Positive', 'Neutral', 'Negative'], dist)
 
     plt.savefig(f'plots/sentiment_distribution{concat_string}.png') if save else plt.show()
 
@@ -158,6 +162,7 @@ def initial_analysis(data):
     for key, sentiment in sentiments_dict.items():
         print(f"Value for 'good' for {sentiment}: {results[key]['good']}")
 
+
 def smooth(data, max_smooth=10):
     smoothed = []
     # Rolling average
@@ -167,6 +172,7 @@ def smooth(data, max_smooth=10):
         smoothed.append(sum(data[j:i + 1]) / (i - j + 1))
         
     return smoothed
+
 
 def loss_plot(file, save=False, concat_string=''):
     plt.rcParams.update({'font.size': 25})
@@ -200,27 +206,98 @@ def loss_plot(file, save=False, concat_string=''):
     plt.xlabel('Step')
     plt.ylabel('Loss')
 
-    plt.plot(train_loss_step, train_loss, label='Training loss')
+    sns.set_style("darkgrid")
+    plt.plot(train_loss_step, train_loss, label='Train loss')
     plt.plot(val_loss_step, val_loss, label='Validation loss')
+
     plt.legend()
     plt.savefig(f'plots/loss_over_time{concat_string}.png') if save else plt.show()
+
+def over_sample_analysis(data, save=False):
+
+    not_split_train, test = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=False)
+    over_sampled_train, _ = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=True)
+
+    plt.rcParams.update({'font.size': 25})
+    # Plot distribution of "Summary" length
+    plt.figure(figsize=(20, 10))
+    plt.subplots_adjust(bottom=0.15)
+    plt.grid(axis='y', alpha=0.75)
+    plt.title(f'Distribution of text length')
+    plt.xlabel('Text length')
+    plt.ylabel('Count')
+    plt.ylim(0, 70000)
+
+    # Plot both distributions on the same plot, 50 bins
+    bins = [x for x in range(0, 400, 10)]
+
+    sns.histplot(over_sampled_train['Summary'].str.len(), bins=bins, label='Oversampled', kde=False)
+    sns.histplot(data['Summary'].str.len(), bins=bins, label='All data', kde=False)
+    sns.histplot(not_split_train['Summary'].str.len(), bins=bins, label='Original', kde=False)
+
+    plt.legend()
+    plt.savefig(f'plots/text_length_distribution_over_sample.png') if save else plt.show()
+
+
+    # Plot distribution of sentiment
+    plt.figure(figsize=(20, 10))
+    plt.subplots_adjust(bottom=0.15)
+    plt.grid(axis='y', alpha=0.75)
+    plt.title(f'Distribution of sentiment')
+    plt.xlabel('Sentiment')
+    plt.ylabel('Count')
+    plt.ylim(0, 120000)
+
+    # Plot both distributions on the same plot
+    data_dist = [len(data[data['Sentiment'] == 2]), \
+                len(data[data['Sentiment'] == 1]), \
+                len(data[data['Sentiment'] == 0])]
+
+    test_dist = [len(test[test['Sentiment'] == 2]), \
+                len(test[test['Sentiment'] == 1]), \
+                len(test[test['Sentiment'] == 0])]
+
+    train_not_over_dist = [len(not_split_train[not_split_train['Sentiment'] == 2]), \
+                          len(not_split_train[not_split_train['Sentiment'] == 1]), \
+                          len(not_split_train[not_split_train['Sentiment'] == 0])]
+
+    # Change the x-axis labels to "Positive", "Neutral" and "Negative"
+    plt.xticks([0, 1, 2], ['Positive', 'Neutral', 'Negative'], rotation=0)
+
+    plt.bar([0, 1, 2], data_dist, label='All data', alpha=1)
+    plt.bar([0, 1, 2], train_not_over_dist, label='Train not oversampled', alpha=1)
+    plt.bar([0, 1, 2], test_dist, label='Test', alpha=1)
+    
+    plt.legend(bbox_to_anchor=(1, 1), title='Datasets')
+
+    # Print percentages
+    print("All data")
+    print(f"Positive: {data_dist[0] / sum(data_dist) * 100:.2f}%")
+    print(f"Neutral: {data_dist[1] / sum(data_dist) * 100:.2f}%")
+    print(f"Negative: {data_dist[2] / sum(data_dist) * 100:.2f}%")
+
+    print("Train not oversampled")
+    print(f"Positive: {train_not_over_dist[0] / sum(train_not_over_dist) * 100:.2f}%")
+    print(f"Neutral: {train_not_over_dist[1] / sum(train_not_over_dist) * 100:.2f}%")
+    print(f"Negative: {train_not_over_dist[2] / sum(train_not_over_dist) * 100:.2f}%")
+
+    print("Test")
+    print(f"Positive: {test_dist[0] / sum(test_dist) * 100:.2f}%")
+    print(f"Neutral: {test_dist[1] / sum(test_dist) * 100:.2f}%")
+    print(f"Negative: {test_dist[2] / sum(test_dist) * 100:.2f}%")
+
+    plt.savefig(f'plots/sentiment_distribution_over_sample.png') if save else plt.show()
 
 
 
 if __name__ == '__main__':
     cleaned_data = read_clean_data()
-    # analyze_data(cleaned_data, save=True, concat_string=f"_all_data")
+    analyze_data(cleaned_data, save=True, concat_string=f"_all_data")
 
     # initial_analysis(cleaned_data)
 
-    # Plots changes for over sampling
-    train, test = split_data(cleaned_data, random_state=42, validation=False, over_sample_train=False)
-
-    # # Plot changes for over sampling
-    analyze_data(train, save=True, concat_string=f"_training_data_before_over_sample")
-    over_samples_train = over_sample(train, 42)
-    analyze_data(over_samples_train, save=True, concat_string=f"_training_data_after_over_sample")
-
+    # Plots changes for oversampling
+    over_sample_analysis(cleaned_data, save=True)
 
     # Plot loss over time
     loss_plot('models/my/distilbert-base-uncased_log_history_no_over_sample.json', save=True, concat_string=f"_no_over_sample")
