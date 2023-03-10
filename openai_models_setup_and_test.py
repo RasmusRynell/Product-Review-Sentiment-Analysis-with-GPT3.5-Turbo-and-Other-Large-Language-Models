@@ -225,7 +225,7 @@ if __name__ == "__main__":
     _, test_data = split_data(cleaned_data, random_state=seed, validation=False, over_sample_train=False)
 
     # Print total num of rows
-    print(f"Total rows: {len(test_data)}")
+    # print(f"Total rows: {len(test_data)}")
 
     # Randomly select 300 rows
     #test_data = test_data.sample(n=1000, random_state=seed)
