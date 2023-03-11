@@ -1,4 +1,4 @@
-# How does GPT3.5-turbo stack up against other LLMs in the sentiment analysis task?
+# Product Review Sentiment Analysis with GPT3.5-Turbo and Other Language Models
 A comparison of OpenAI's GPT3.5-turbo against other LLMs on the [171k-product-review-with-sentiment-dataset](https://www.kaggle.com/datasets/mansithummar67/171k-product-review-with-sentiment-dataset).
 
 
