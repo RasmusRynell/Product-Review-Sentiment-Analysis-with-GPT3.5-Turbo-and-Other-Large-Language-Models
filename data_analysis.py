@@ -288,6 +288,12 @@ def over_sample_analysis(data, save=False):
 
     plt.savefig(f'plots/sentiment_distribution_over_sample.png') if save else plt.show()
 
+    # Plot distribution word count before and after oversampling
+    plot_word_count(not_split_train, save, "_before_over_sample")
+
+    # Plot distribution word count
+    plot_word_count(over_sampled_train, save, "_after_over_sample")
+
 
 
 if __name__ == '__main__':
@@ -302,4 +308,3 @@ if __name__ == '__main__':
     # Plot loss over time
     loss_plot('models/my/distilbert-base-uncased_log_history_no_over_sample.json', save=True, concat_string=f"_no_over_sample")
     loss_plot('models/my/distilbert-base-uncased_log_history_over_sample.json', save=True, concat_string=f"_over_sample")
-    
