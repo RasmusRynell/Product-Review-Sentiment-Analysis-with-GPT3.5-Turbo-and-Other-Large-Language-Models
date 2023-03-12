@@ -34,9 +34,6 @@ def read_clean_data():
     # This many rows are left
     print(f"Rows left: {len(data)}")
 
-    # Convert all to lowercase
-    data['Summary'] = data['Summary'].str.lower()
-
     return data
 
 def over_sample(data, random_state):
